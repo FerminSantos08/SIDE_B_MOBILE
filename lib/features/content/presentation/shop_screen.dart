@@ -6,6 +6,7 @@ import '../../../core/theme/side_b_theme.dart';
 import '../../../core/widgets/async_state.dart';
 import '../../../core/widgets/editorial_components.dart';
 import '../data/content_models.dart';
+import 'cart_screen.dart';
 import 'content_providers.dart';
 import 'product_detail_screen.dart';
 
@@ -26,7 +27,17 @@ class ShopScreen extends ConsumerWidget {
               child: EditorialHeader(
                 eyebrow: 'Objetos y ediciones',
                 title: 'La tienda\ndel otro lado.',
-                description: 'Música y piezas seleccionadas para llevar contigo.',
+                description:
+                    'Música y piezas seleccionadas para llevar contigo.',
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.only(right: padding, bottom: 8),
+                child: const Align(
+                  alignment: Alignment.centerRight,
+                  child: CartButton(),
+                ),
               ),
             ),
             products.when(
@@ -53,13 +64,16 @@ class ShopScreen extends ConsumerWidget {
               ),
               data: (items) => items.isEmpty
                   ? const SliverFillRemaining(
-                      child: EmptyView(message: 'Aún no hay productos disponibles.'),
+                      child: EmptyView(
+                        message: 'Aún no hay productos disponibles.',
+                      ),
                     )
                   : SliverPadding(
                       padding: EdgeInsets.fromLTRB(padding, 0, padding, 112),
                       sliver: SliverGrid(
                         delegate: SliverChildBuilderDelegate(
-                          (context, index) => _ProductCard(product: items[index]),
+                          (context, index) =>
+                              _ProductCard(product: items[index]),
                           childCount: items.length,
                         ),
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -87,30 +101,48 @@ class _ProductCard extends StatelessWidget {
     label: '${product.name}, ${_price(product.price)}',
     child: InkWell(
       onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => ProductDetailScreen(productId: product.id)),
+        MaterialPageRoute(
+          builder: (_) => ProductDetailScreen(productId: product.id),
+        ),
       ),
       child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: NetworkCover(url: product.image, aspectRatio: 1)),
-        const SizedBox(height: 11),
-        Text(
-          (product.category ?? 'SIDE B').toUpperCase(),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(color: SideBColors.accent),
-        ),
-        const SizedBox(height: 4),
-        Text(product.name, maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 3),
-        Row(children: [
-          Expanded(child: Text(product.brand ?? 'SIDE B', maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium)),
-          Text(_price(product.price), style: Theme.of(context).textTheme.labelMedium
-              ?.copyWith(color: SideBColors.graphite)),
-        ]),
-      ],
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: NetworkCover(url: product.image, aspectRatio: 1)),
+          const SizedBox(height: 11),
+          Text(
+            (product.category ?? 'SIDE B').toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelMedium
+                ?.copyWith(color: SideBColors.accent),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            product.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 3),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  product.brand ?? 'SIDE B',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+              Text(
+                _price(product.price),
+                style: Theme.of(context).textTheme.labelMedium
+                    ?.copyWith(color: SideBColors.graphite),
+              ),
+            ],
+          ),
+        ],
       ),
     ),
   );
@@ -119,11 +151,20 @@ class _ProductCard extends StatelessWidget {
 class _ProductSkeleton extends StatelessWidget {
   const _ProductSkeleton();
   @override
-  Widget build(BuildContext context) => const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Expanded(child: ColoredBox(color: SideBColors.skeleton)), SizedBox(height: 11),
-    SizedBox(width: 90, height: 12, child: ColoredBox(color: SideBColors.skeleton)), SizedBox(height: 7),
-    SizedBox(height: 20, child: ColoredBox(color: SideBColors.skeleton)),
-  ]);
+  Widget build(BuildContext context) => const Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Expanded(child: ColoredBox(color: SideBColors.skeleton)),
+      SizedBox(height: 11),
+      SizedBox(
+        width: 90,
+        height: 12,
+        child: ColoredBox(color: SideBColors.skeleton),
+      ),
+      SizedBox(height: 7),
+      SizedBox(height: 20, child: ColoredBox(color: SideBColors.skeleton)),
+    ],
+  );
 }
 
 String _price(num value) => '\$${value.toStringAsFixed(0)} MXN';

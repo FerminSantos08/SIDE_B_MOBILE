@@ -43,4 +43,17 @@ class ContentRepository {
 
   Future<void> removeFromWishlist(int productId) =>
       _api.delete('/wishlist/items/$productId');
+
+  Future<List<CartItem>> cart() async {
+    final data = await _api.get('/cart') as Map<String, dynamic>;
+    return (data['items'] as List)
+        .map((item) => CartItem.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> updateCartItem(int productId, int quantity) =>
+      _api.put('/cart/items/$productId', data: {'quantity': quantity});
+
+  Future<void> removeCartItem(int productId) =>
+      _api.delete('/cart/items/$productId');
 }

@@ -131,3 +131,21 @@ class Product {
     stock: j['stock'] as int?,
   );
 }
+
+class CartItem {
+  const CartItem({required this.product, required this.quantity});
+  final Product product;
+  final int quantity;
+
+  factory CartItem.fromJson(Map<String, dynamic> json) {
+    final nestedProduct = json['producto'] ?? json['product'];
+    final productJson = nestedProduct is Map<String, dynamic>
+        ? nestedProduct
+        : json;
+    final rawQuantity = json['cantidad'] ?? json['quantity'] ?? 1;
+    return CartItem(
+      product: Product.fromJson(productJson),
+      quantity: rawQuantity is num ? rawQuantity.toInt() : 1,
+    );
+  }
+}

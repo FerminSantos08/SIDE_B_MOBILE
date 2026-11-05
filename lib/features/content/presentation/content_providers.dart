@@ -30,3 +30,6 @@ final productsProvider = FutureProvider<List<Product>>(
 final productProvider = FutureProvider.family<Product, int>(
   (ref, id) => ref.watch(contentRepositoryProvider).product(id),
 );
+final cartProvider = FutureProvider<List<CartItem>>(
+  (ref) => ref.watch(contentRepositoryProvider).cart(),
+);
