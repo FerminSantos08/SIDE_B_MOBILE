@@ -11,16 +11,19 @@ class EditorialHeader extends StatelessWidget {
     required this.eyebrow,
     required this.title,
     this.description,
+    this.alignment = Alignment.center,
   });
   final String eyebrow;
   final String title;
   final String? description;
+  final AlignmentGeometry alignment;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final horizontal = constraints.maxWidth < 600 ? 20.0 : 32.0;
-      return Center(
+      return Align(
+        alignment: alignment,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1180),
           child: Padding(

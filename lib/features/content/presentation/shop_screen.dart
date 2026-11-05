@@ -5,6 +5,7 @@ import '../../../core/layout/side_b_layout.dart';
 import '../../../core/theme/side_b_theme.dart';
 import '../../../core/widgets/async_state.dart';
 import '../../../core/widgets/editorial_components.dart';
+import '../../../core/widgets/olive_shimmer.dart';
 import '../data/content_models.dart';
 import 'cart_screen.dart';
 import 'content_providers.dart';
@@ -41,18 +42,22 @@ class ShopScreen extends ConsumerWidget {
               ),
             ),
             products.when(
-              loading: () => SliverPadding(
-                padding: EdgeInsets.all(padding),
-                sliver: SliverGrid(
-                  delegate: SliverChildBuilderDelegate(
-                    (_, __) => const _ProductSkeleton(),
-                    childCount: columns * 2,
-                  ),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: columns,
-                    mainAxisSpacing: 20,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: .78,
+              loading: () => SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(padding, 0, padding, 112),
+                  child: OliveShimmer(
+                    child: GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: columns,
+                        mainAxisSpacing: 22,
+                        crossAxisSpacing: 16,
+                        childAspectRatio: .78,
+                      ),
+                      itemCount: columns * 2,
+                      itemBuilder: (_, __) => const _ProductSkeleton(),
+                    ),
                   ),
                 ),
               ),
@@ -154,15 +159,19 @@ class _ProductSkeleton extends StatelessWidget {
   Widget build(BuildContext context) => const Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Expanded(child: ColoredBox(color: SideBColors.skeleton)),
+      Expanded(child: SkeletonBlock(radius: 3)),
       SizedBox(height: 11),
-      SizedBox(
-        width: 90,
-        height: 12,
-        child: ColoredBox(color: SideBColors.skeleton),
+      SkeletonBlock(width: 90, height: 12),
+      SizedBox(height: 4),
+      SkeletonBlock(height: 20),
+      SizedBox(height: 3),
+      Row(
+        children: [
+          Expanded(child: SkeletonBlock(height: 12)),
+          SizedBox(width: 28),
+          SkeletonBlock(width: 52, height: 12),
+        ],
       ),
-      SizedBox(height: 7),
-      SizedBox(height: 20, child: ColoredBox(color: SideBColors.skeleton)),
     ],
   );
 }

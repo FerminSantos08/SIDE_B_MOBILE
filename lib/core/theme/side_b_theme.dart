@@ -12,7 +12,7 @@ class SideBColors {
   static const border = Color(0x33292A27);
   static const error = Color(0xFFB5473F);
   static const success = Color(0xFF4D7057);
-  static const skeleton = Color(0xFFDDD6C9);
+  static const skeleton = Color(0xFFDDD7CB);
 }
 
 class SideBTheme {

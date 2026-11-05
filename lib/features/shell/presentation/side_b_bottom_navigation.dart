@@ -12,6 +12,7 @@ class SideBBottomNavigation extends StatelessWidget {
   const SideBBottomNavigation({
     required this.selectedIndex,
     required this.onDestinationSelected,
+    this.showCreateDestination = false,
     super.key,
   });
 
@@ -26,8 +27,9 @@ class SideBBottomNavigation extends StatelessWidget {
 
   final int selectedIndex;
   final ValueChanged<int> onDestinationSelected;
+  final bool showCreateDestination;
 
-  static const _destinations = [
+  static const _standardDestinations = [
     _NavigationDestination(LucideIcons.home, 'Inicio'),
     _NavigationDestination(LucideIcons.newspaper, 'Editorial'),
     _NavigationDestination(LucideIcons.disc3, 'Artistas'),
@@ -37,10 +39,24 @@ class SideBBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    assert(selectedIndex >= 0 && selectedIndex < _destinations.length);
+    final destinations = [
+      _standardDestinations[0],
+      _standardDestinations[1],
+      if (showCreateDestination)
+        const _NavigationDestination(
+          Icons.add_circle_outline,
+          'Crear',
+          isCreation: true,
+        )
+      else
+        _standardDestinations[2],
+      _standardDestinations[3],
+      _standardDestinations[4],
+    ];
+    assert(selectedIndex >= 0 && selectedIndex < destinations.length);
 
-    final availableWidth = MediaQuery.sizeOf(context).width -
-        (_horizontalScreenMargin * 2);
+    final availableWidth =
+        MediaQuery.sizeOf(context).width - (_horizontalScreenMargin * 2);
     final navigationWidth = availableWidth.clamp(0.0, maxWidth).toDouble();
 
     return SafeArea(
@@ -66,7 +82,7 @@ class SideBBottomNavigation extends StatelessWidget {
                   final activeWidth = _activeItemWidth(constraints.maxWidth);
                   final inactiveWidth =
                       (constraints.maxWidth - activeWidth) /
-                      (_destinations.length - 1);
+                      (destinations.length - 1);
                   final indicatorLeft = _itemLeft(
                     selectedIndex,
                     selectedIndex,
@@ -88,13 +104,15 @@ class SideBBottomNavigation extends StatelessWidget {
                         child: IgnorePointer(
                           child: DecoratedBox(
                             decoration: BoxDecoration(
-                              color: SideBColors.olive,
+                              color: destinations[selectedIndex].isCreation
+                                  ? SideBColors.accent
+                                  : SideBColors.olive,
                               borderRadius: BorderRadius.circular(height / 2),
                             ),
                           ),
                         ),
                       ),
-                      ...List.generate(_destinations.length, (index) {
+                      ...List.generate(destinations.length, (index) {
                         final selected = index == selectedIndex;
                         return AnimatedPositioned(
                           duration: _animationDuration,
@@ -112,7 +130,7 @@ class SideBBottomNavigation extends StatelessWidget {
                           bottom: 0,
                           width: selected ? activeWidth : inactiveWidth,
                           child: _NavigationItem(
-                            destination: _destinations[index],
+                            destination: destinations[index],
                             selected: selected,
                             onTap: () => onDestinationSelected(index),
                           ),
@@ -131,9 +149,11 @@ class SideBBottomNavigation extends StatelessWidget {
 
   double _activeItemWidth(double availableWidth) {
     final preferredWidth = (availableWidth * .35).clamp(96.0, 132.0);
-    final widthForAccessibleItems = (availableWidth -
-            (_minimumInactiveItemWidth * (_destinations.length - 1)))
-        .clamp(0.0, double.infinity);
+    final widthForAccessibleItems =
+        (availableWidth -
+                (_minimumInactiveItemWidth *
+                    (_standardDestinations.length - 1)))
+            .clamp(0.0, double.infinity);
     return preferredWidth.clamp(0.0, widthForAccessibleItems).toDouble();
   }
 
@@ -169,53 +189,64 @@ class _NavigationItem extends StatelessWidget {
     );
 
     return Semantics(
-        key: ValueKey('side-b-nav-${destination.label}'),
-        button: true,
-        selected: selected,
-        label: destination.label,
+      key: ValueKey('side-b-nav-${destination.label}'),
+      button: true,
+      selected: selected,
+      label: destination.label,
+      onTap: onTap,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        excludeFromSemantics: true,
         onTap: onTap,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          excludeFromSemantics: true,
-          onTap: onTap,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Center(
-                child: Row(
-                  key: ValueKey('side-b-selected-${destination.label}'),
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Icon(destination.icon, color: SideBColors.ivory, size: 20),
-                    AnimatedSize(
-                      duration: SideBBottomNavigation._animationDuration,
-                      curve: SideBBottomNavigation._animationCurve,
-                      child: selected
-                          ? Padding(
-                              padding: const EdgeInsets.only(left: 7),
-                              child: Text(
-                                destination.label,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: textStyle,
-                              ),
-                            )
-                          : const SizedBox.shrink(),
-                    ),
-                  ],
-                ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Center(
+              child: Row(
+                key: ValueKey('side-b-selected-${destination.label}'),
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Icon(
+                    destination.icon,
+                    color: destination.isCreation && !selected
+                        ? SideBColors.accent
+                        : SideBColors.ivory,
+                    size: 20,
+                  ),
+                  AnimatedSize(
+                    duration: SideBBottomNavigation._animationDuration,
+                    curve: SideBBottomNavigation._animationCurve,
+                    child: selected
+                        ? Padding(
+                            padding: const EdgeInsets.only(left: 7),
+                            child: Text(
+                              destination.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: textStyle,
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
     );
   }
 }
 
 class _NavigationDestination {
-  const _NavigationDestination(this.icon, this.label);
+  const _NavigationDestination(
+    this.icon,
+    this.label, {
+    this.isCreation = false,
+  });
 
   final IconData icon;
   final String label;
+  final bool isCreation;
 }

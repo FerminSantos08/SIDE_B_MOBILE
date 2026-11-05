@@ -7,6 +7,7 @@ import '../../../core/layout/side_b_layout.dart';
 import '../../../core/theme/side_b_theme.dart';
 import '../../../core/widgets/async_state.dart';
 import '../../../core/widgets/editorial_components.dart';
+import '../../../core/widgets/olive_shimmer.dart';
 import '../data/content_models.dart';
 import 'content_providers.dart';
 import 'post_detail_screen.dart';
@@ -39,37 +40,45 @@ class _HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) => LayoutBuilder(
     builder: (context, constraints) {
       final width = constraints.maxWidth;
-      return CustomScrollView(
-        slivers: [
-          const SliverToBoxAdapter(
-            child: EditorialHeader(
-              eyebrow: 'SIDE B / Música y cultura',
-              title: 'Historias para\nescuchar distinto.',
-            ),
-          ),
-          posts.when(
-            loading: () =>
-                SliverToBoxAdapter(child: _HomeSkeleton(width: width)),
-            error: (_, __) => SliverFillRemaining(
-              child: AsyncErrorView(
-                message: 'No pudimos cargar la portada de SIDE B.',
-                onRetry: () => ref.invalidate(postsProvider),
+      return RefreshIndicator(
+        color: SideBColors.olive,
+        onRefresh: () async {
+          await ref.refresh(postsProvider.future);
+        },
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            const SliverToBoxAdapter(
+              child: EditorialHeader(
+                eyebrow: 'SIDE B / Música y cultura',
+                title: 'Historias para\nescuchar distinto.',
+                alignment: Alignment.centerLeft,
               ),
             ),
-            data: (items) {
-              if (items.isEmpty) {
-                return const SliverFillRemaining(
-                  child: EmptyView(
-                    message: 'Aún no hay publicaciones disponibles.',
-                  ),
+            posts.when(
+              loading: () =>
+                  SliverToBoxAdapter(child: _HomeSkeleton(width: width)),
+              error: (_, __) => SliverFillRemaining(
+                child: AsyncErrorView(
+                  message: 'No pudimos cargar la portada de SIDE B.',
+                  onRetry: () => ref.invalidate(postsProvider),
+                ),
+              ),
+              data: (items) {
+                if (items.isEmpty) {
+                  return const SliverFillRemaining(
+                    child: EmptyView(
+                      message: 'Aún no hay publicaciones disponibles.',
+                    ),
+                  );
+                }
+                return SliverToBoxAdapter(
+                  child: _HomeBody(width: width, posts: items),
                 );
-              }
-              return SliverToBoxAdapter(
-                child: _HomeBody(width: width, posts: items),
-              );
-            },
-          ),
-        ],
+              },
+            ),
+          ],
+        ),
       );
     },
   );
@@ -146,83 +155,89 @@ class _EditorialScreen extends ConsumerWidget {
       final width = constraints.maxWidth;
       final padding = SideBLayout.horizontalPadding(width);
       final expanded = SideBLayout.sizeFor(width) == SideBScreenSize.expanded;
-      final contentWidth = math.min(
-        width - (padding * 2),
-        SideBLayout.maxContentWidth,
-      ).toDouble();
+      final contentWidth = math
+          .min(width - (padding * 2), SideBLayout.maxContentWidth)
+          .toDouble();
       // A two-column tile must include its responsive 1.35 image plus all
       // editorial text below it. A fixed 455px tile overflows on tablets.
       final editorialTileHeight = ((contentWidth - 24) / 2) / 1.35 + 210;
-      return CustomScrollView(
-        slivers: [
-          const SliverToBoxAdapter(
-            child: EditorialHeader(
-              eyebrow: 'Lecturas SIDE B',
-              title: 'Editorial.',
-              description:
-                  'Historias, hallazgos y sonidos para ir un poco más allá.',
-            ),
-          ),
-          posts.when(
-            loading: () =>
-                SliverToBoxAdapter(child: _EditorialSkeleton(width: width)),
-            error: (_, __) => SliverFillRemaining(
-              child: AsyncErrorView(
-                message: 'No pudimos cargar las publicaciones.',
-                onRetry: () => ref.invalidate(postsProvider),
+      return RefreshIndicator(
+        color: SideBColors.olive,
+        onRefresh: () async {
+          await ref.refresh(postsProvider.future);
+        },
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            const SliverToBoxAdapter(
+              child: EditorialHeader(
+                eyebrow: 'Lecturas SIDE B',
+                title: 'Editorial.',
+                description:
+                    'Historias, hallazgos y sonidos para ir un poco más allá.',
               ),
             ),
-            data: (items) {
-              if (items.isEmpty) {
-                return const SliverFillRemaining(
-                  child: EmptyView(
-                    message: 'No hay publicaciones disponibles por ahora.',
-                  ),
-                );
-              }
-              return SliverPadding(
-                padding: EdgeInsets.fromLTRB(padding, 0, padding, 24),
-                sliver: SliverToBoxAdapter(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        maxWidth: SideBLayout.maxContentWidth,
-                      ),
-                      child: expanded
-                          ? GridView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 2,
-                                    mainAxisSpacing: 20,
-                                    crossAxisSpacing: 24,
-                                    mainAxisExtent: editorialTileHeight,
-                                  ),
-                              itemCount: items.length,
-                              itemBuilder: (context, index) =>
-                                  EditorialPostCard(
-                                    post: items[index],
-                                    onTap: () => _open(context, items[index]),
-                                  ),
-                            )
-                          : Column(
-                              children: items
-                                  .map(
-                                    (post) => EditorialPostCard(
-                                      post: post,
-                                      onTap: () => _open(context, post),
+            posts.when(
+              loading: () =>
+                  SliverToBoxAdapter(child: _EditorialSkeleton(width: width)),
+              error: (_, __) => SliverFillRemaining(
+                child: AsyncErrorView(
+                  message: 'No pudimos cargar las publicaciones.',
+                  onRetry: () => ref.invalidate(postsProvider),
+                ),
+              ),
+              data: (items) {
+                if (items.isEmpty) {
+                  return const SliverFillRemaining(
+                    child: EmptyView(
+                      message: 'No hay publicaciones disponibles por ahora.',
+                    ),
+                  );
+                }
+                return SliverPadding(
+                  padding: EdgeInsets.fromLTRB(padding, 0, padding, 24),
+                  sliver: SliverToBoxAdapter(
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: SideBLayout.maxContentWidth,
+                        ),
+                        child: expanded
+                            ? GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 2,
+                                      mainAxisSpacing: 20,
+                                      crossAxisSpacing: 24,
+                                      mainAxisExtent: editorialTileHeight,
                                     ),
-                                  )
-                                  .toList(),
-                            ),
+                                itemCount: items.length,
+                                itemBuilder: (context, index) =>
+                                    EditorialPostCard(
+                                      post: items[index],
+                                      onTap: () => _open(context, items[index]),
+                                    ),
+                              )
+                            : Column(
+                                children: items
+                                    .map(
+                                      (post) => EditorialPostCard(
+                                        post: post,
+                                        onTap: () => _open(context, post),
+                                      ),
+                                    )
+                                    .toList(),
+                              ),
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
-          ),
-        ],
+                );
+              },
+            ),
+          ],
+        ),
       );
     },
   );
@@ -290,33 +305,73 @@ class _HomeSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final expanded = SideBLayout.sizeFor(width) == SideBScreenSize.expanded;
-    final hero = _Block(height: SideBLayout.featuredPostHeight(width));
+    final hero = _FeaturedSkeleton(
+      height: SideBLayout.featuredPostHeight(width),
+    );
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: SideBLayout.maxContentWidth),
+        constraints: const BoxConstraints(
+          maxWidth: SideBLayout.maxContentWidth,
+        ),
         child: Padding(
           padding: SideBLayout.pageInsets(width),
-          child: expanded
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 6, child: hero),
-                    const SizedBox(width: 32),
-                    const Expanded(flex: 4, child: _RecentSkeleton()),
-                  ],
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    hero,
-                    const SizedBox(height: 30),
-                    const _RecentSkeleton(),
-                  ],
-                ),
+          child: OliveShimmer(
+            child: expanded
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(flex: 6, child: hero),
+                      const SizedBox(width: 32),
+                      const Expanded(flex: 4, child: _RecentSkeleton()),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      hero,
+                      const SizedBox(height: 30),
+                      const _RecentSkeleton(),
+                    ],
+                  ),
+          ),
         ),
       ),
     );
   }
+}
+
+class _FeaturedSkeleton extends StatelessWidget {
+  const _FeaturedSkeleton({required this.height});
+  final double height;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: height,
+    child: Stack(
+      fit: StackFit.expand,
+      children: [
+        const SkeletonBlock(radius: 3),
+        Positioned(
+          left: 18,
+          right: 18,
+          bottom: 18,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              SkeletonBlock(width: 84, height: 10),
+              SizedBox(height: 10),
+              SkeletonBlock(height: 27),
+              SizedBox(height: 7),
+              SkeletonBlock(width: 190, height: 27),
+              SizedBox(height: 12),
+              SkeletonBlock(width: 145, height: 10),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _RecentSkeleton extends StatelessWidget {
@@ -326,8 +381,8 @@ class _RecentSkeleton extends StatelessWidget {
   Widget build(BuildContext context) => const Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      _Block(height: 22, width: 160),
-      SizedBox(height: 13),
+      _SectionTitle(title: 'Ultimas publicaciones'),
+      SizedBox(height: 5),
       _CompactSkeleton(),
       _CompactSkeleton(),
       _CompactSkeleton(),
@@ -340,30 +395,66 @@ class _EditorialSkeleton extends StatelessWidget {
   final double width;
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: SideBLayout.maxContentWidth),
-      child: Padding(
-        padding: SideBLayout.pageInsets(width),
-        child: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AspectRatio(
-              aspectRatio: 1.35,
-              child: _Block(height: double.infinity),
+  Widget build(BuildContext context) {
+    final padding = SideBLayout.horizontalPadding(width);
+    final expanded = SideBLayout.sizeFor(width) == SideBScreenSize.expanded;
+    final contentWidth = math
+        .min(width - (padding * 2), SideBLayout.maxContentWidth)
+        .toDouble();
+    final tileHeight = ((contentWidth - 24) / 2) / 1.35 + 210;
+    final cards = expanded
+        ? GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 20,
+              crossAxisSpacing: 24,
+              mainAxisExtent: tileHeight,
             ),
-            SizedBox(height: 12),
-            _Block(height: 25, width: 260),
-            SizedBox(height: 10),
-            _Block(height: 40),
-            SizedBox(height: 30),
-            AspectRatio(
-              aspectRatio: 1.35,
-              child: _Block(height: double.infinity),
-            ),
-          ],
+            itemCount: 4,
+            itemBuilder: (_, __) => const _EditorialCardSkeleton(),
+          )
+        : const Column(
+            children: [_EditorialCardSkeleton(), _EditorialCardSkeleton()],
+          );
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          maxWidth: SideBLayout.maxContentWidth,
+        ),
+        child: Padding(
+          padding: SideBLayout.pageInsets(width),
+          child: OliveShimmer(child: cards),
         ),
       ),
+    );
+  }
+}
+
+class _EditorialCardSkeleton extends StatelessWidget {
+  const _EditorialCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+    padding: EdgeInsets.only(bottom: 26),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AspectRatio(aspectRatio: 1.35, child: SkeletonBlock(radius: 3)),
+        SizedBox(height: 13),
+        SkeletonBlock(width: 78, height: 10),
+        SizedBox(height: 7),
+        SkeletonBlock(height: 28),
+        SizedBox(height: 6),
+        SkeletonBlock(width: 190, height: 28),
+        SizedBox(height: 10),
+        SkeletonBlock(height: 14),
+        SizedBox(height: 6),
+        SkeletonBlock(width: 210, height: 14),
+        SizedBox(height: 10),
+        SkeletonBlock(width: 130, height: 10),
+      ],
     ),
   );
 }
@@ -376,37 +467,21 @@ class _CompactSkeleton extends StatelessWidget {
     padding: EdgeInsets.symmetric(vertical: 13),
     child: Row(
       children: [
-        _Block(height: 84, width: 84),
+        SkeletonBlock(height: 84, width: 84, radius: 3),
         SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Block(height: 11, width: 65),
+              SkeletonBlock(height: 10, width: 65),
               SizedBox(height: 9),
-              _Block(height: 20),
+              SkeletonBlock(height: 20),
               SizedBox(height: 7),
-              _Block(height: 12, width: 110),
+              SkeletonBlock(height: 12, width: 110),
             ],
           ),
         ),
       ],
-    ),
-  );
-}
-
-class _Block extends StatelessWidget {
-  const _Block({required this.height, this.width});
-  final double height;
-  final double? width;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    height: height,
-    width: width,
-    decoration: BoxDecoration(
-      color: SideBColors.skeleton,
-      borderRadius: BorderRadius.circular(3),
     ),
   );
 }

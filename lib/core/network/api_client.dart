@@ -26,14 +26,36 @@ class ApiClient {
   }
   final TokenStorage _tokenStorage;
   final Dio dio;
+
+  Future<Response<T>> _withKnownHosts<T>(
+    Future<Response<T>> Function() request,
+  ) async {
+    DioException? lastConnectionError;
+
+    for (final baseUrl in ApiConfig.baseUrls) {
+      dio.options.baseUrl = baseUrl;
+      try {
+        return await request();
+      } on DioException catch (error) {
+        if (error.type != DioExceptionType.connectionError &&
+            error.type != DioExceptionType.connectionTimeout &&
+            error.type != DioExceptionType.receiveTimeout) {
+          rethrow;
+        }
+        lastConnectionError = error;
+      }
+    }
+
+    throw lastConnectionError!;
+  }
+
   Future<dynamic> get(
     String path, {
     Map<String, dynamic>? queryParameters,
   }) async {
     try {
-      return (await dio.get<dynamic>(
-        path,
-        queryParameters: queryParameters,
+      return (await _withKnownHosts(
+        () => dio.get<dynamic>(path, queryParameters: queryParameters),
       )).data;
     } on DioException catch (e) {
       throw _mapError(e);
@@ -42,7 +64,9 @@ class ApiClient {
 
   Future<dynamic> post(String path, {Object? data}) async {
     try {
-      return (await dio.post<dynamic>(path, data: data)).data;
+      return (await _withKnownHosts(
+        () => dio.post<dynamic>(path, data: data),
+      )).data;
     } on DioException catch (e) {
       throw _mapError(e);
     }
@@ -50,7 +74,7 @@ class ApiClient {
 
   Future<dynamic> delete(String path) async {
     try {
-      return (await dio.delete<dynamic>(path)).data;
+      return (await _withKnownHosts(() => dio.delete<dynamic>(path))).data;
     } on DioException catch (e) {
       throw _mapError(e);
     }
@@ -58,7 +82,9 @@ class ApiClient {
 
   Future<dynamic> put(String path, {Object? data}) async {
     try {
-      return (await dio.put<dynamic>(path, data: data)).data;
+      return (await _withKnownHosts(
+        () => dio.put<dynamic>(path, data: data),
+      )).data;
     } on DioException catch (e) {
       throw _mapError(e);
     }

@@ -7,6 +7,7 @@ import '../../../core/theme/side_b_theme.dart';
 import '../../../core/utils/text_formatters.dart';
 import '../../../core/widgets/async_state.dart';
 import '../../../core/widgets/editorial_components.dart';
+import '../../../core/widgets/olive_shimmer.dart';
 import 'content_providers.dart';
 
 class PostDetailScreen extends ConsumerWidget {
@@ -112,7 +113,6 @@ class PostDetailScreen extends ConsumerWidget {
       ),
     );
   }
-
 }
 
 class HtmlArticleBody extends StatelessWidget {
@@ -168,10 +168,8 @@ class _StatusLabel extends StatelessWidget {
     ),
     child: Text(
       status.toUpperCase(),
-      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-        color: SideBColors.ivory,
-        letterSpacing: .8,
-      ),
+      style: Theme.of(context).textTheme.labelMedium
+          ?.copyWith(color: SideBColors.ivory, letterSpacing: .8),
     ),
   );
 }
@@ -215,10 +213,7 @@ List<_HtmlBlock> _articleBlocks(String html) {
   if (matches.isEmpty) return [_HtmlBlock('p', html)];
   return matches
       .map(
-        (match) => _HtmlBlock(
-          match.group(1)!.toLowerCase(),
-          match.group(2)!,
-        ),
+        (match) => _HtmlBlock(match.group(1)!.toLowerCase(), match.group(2)!),
       )
       .toList(growable: false);
 }
@@ -233,7 +228,12 @@ List<InlineSpan> _inlineSpans(String html, TextStyle? baseStyle) {
   for (final match in tagPattern.allMatches(html)) {
     if (match.start > cursor) {
       spans.add(
-        _textSpan(html.substring(cursor, match.start), baseStyle, emphasis, strong),
+        _textSpan(
+          html.substring(cursor, match.start),
+          baseStyle,
+          emphasis,
+          strong,
+        ),
       );
     }
     final token = match.group(0)!.toLowerCase();
@@ -283,20 +283,22 @@ class _DetailSkeleton extends StatelessWidget {
           SideBLayout.horizontalPadding(width),
           24,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 50),
-            _DetailBlock(height: SideBLayout.featuredPostHeight(width)),
-            const SizedBox(height: 25),
-            const _DetailBlock(height: 12, width: 70),
-            const SizedBox(height: 12),
-            const _DetailBlock(height: 84),
-            const SizedBox(height: 20),
-            const _DetailBlock(height: 16, width: 160),
-            const SizedBox(height: 30),
-            const _DetailBlock(height: 180),
-          ],
+        child: OliveShimmer(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 50),
+              _DetailBlock(height: SideBLayout.featuredPostHeight(width)),
+              const SizedBox(height: 25),
+              const _DetailBlock(height: 12, width: 70),
+              const SizedBox(height: 12),
+              const _DetailBlock(height: 84),
+              const SizedBox(height: 20),
+              const _DetailBlock(height: 16, width: 160),
+              const SizedBox(height: 30),
+              const _DetailBlock(height: 180),
+            ],
+          ),
         ),
       ),
     ),
@@ -310,5 +312,5 @@ class _DetailBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      Container(height: height, width: width, color: SideBColors.skeleton);
+      SkeletonBlock(height: height, width: width, radius: 3);
 }
