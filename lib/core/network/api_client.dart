@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../config/api_config.dart';
 import '../storage/token_storage.dart';
@@ -17,9 +18,22 @@ class ApiClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (o, h) async {
+          if (kDebugMode) debugPrint('SIDE B API -> ${o.method} ${o.uri}');
           final t = await _tokenStorage.read();
           if (t != null) o.headers['Authorization'] = 'Bearer $t';
           h.next(o);
+        },
+        onResponse: (response, handler) {
+          if (kDebugMode) {
+            debugPrint('SIDE B API <- ${response.statusCode} ${response.requestOptions.uri}');
+          }
+          handler.next(response);
+        },
+        onError: (error, handler) {
+          if (kDebugMode) {
+            debugPrint('SIDE B API ERROR ${error.type.name} ${error.requestOptions.uri}: ${error.error ?? error.message}');
+          }
+          handler.next(error);
         },
       ),
     );

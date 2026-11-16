@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../features/content/data/content_models.dart';
+import '../../features/content/presentation/post_actions_bar.dart';
 import '../theme/side_b_theme.dart';
 import '../utils/text_formatters.dart';
 
@@ -105,7 +106,9 @@ class FeaturedPostCard extends StatelessWidget {
     required this.post,
     required this.onTap,
     this.height,
+    this.onComment,
   });
+  final VoidCallback? onComment;
   final Post post;
   final VoidCallback onTap;
   final double? height;
@@ -151,13 +154,18 @@ class FeaturedPostCard extends StatelessWidget {
                           ?.copyWith(color: SideBColors.ivory),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   const Icon(
                     LucideIcons.arrowUpRight,
                     color: SideBColors.ivory,
                     size: 20,
                   ),
                 ],
+              ),
+              PostActionsBar(
+                post: post,
+                onComment: onComment ?? onTap,
+                color: SideBColors.ivory,
               ),
             ],
           ),
@@ -168,9 +176,15 @@ class FeaturedPostCard extends StatelessWidget {
 }
 
 class CompactPostCard extends StatelessWidget {
-  const CompactPostCard({super.key, required this.post, required this.onTap});
+  const CompactPostCard({
+    super.key,
+    required this.post,
+    required this.onTap,
+    this.onComment,
+  });
   final Post post;
   final VoidCallback onTap;
+  final VoidCallback? onComment;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -180,46 +194,50 @@ class CompactPostCard extends StatelessWidget {
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 13),
-        child: Row(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: 84,
-              child: NetworkCover(url: post.image, aspectRatio: 1),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _tag(post).toUpperCase(),
-                    style: Theme.of(context).textTheme.labelMedium
-                        ?.copyWith(color: SideBColors.accent),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 84,
+                  child: NetworkCover(url: post.image, aspectRatio: 1),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _tag(post).toUpperCase(),
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(color: SideBColors.accent),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        post.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 6),
+                      _PostMetadata(post: post),
+                    ],
                   ),
-                  const SizedBox(height: 5),
-                  Text(
-                    post.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(top: 23),
+                  child: Icon(
+                    LucideIcons.chevronRight,
+                    size: 18,
+                    color: SideBColors.graphite,
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _meta(post),
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const Padding(
-              padding: EdgeInsets.only(top: 23),
-              child: Icon(
-                LucideIcons.chevronRight,
-                size: 18,
-                color: SideBColors.graphite,
-              ),
-            ),
+            const SizedBox(height: 6),
+            PostActionsBar(post: post, onComment: onComment ?? onTap),
           ],
         ),
       ),
@@ -228,7 +246,13 @@ class CompactPostCard extends StatelessWidget {
 }
 
 class EditorialPostCard extends StatelessWidget {
-  const EditorialPostCard({super.key, required this.post, required this.onTap});
+  const EditorialPostCard({
+    super.key,
+    required this.post,
+    required this.onTap,
+    this.onComment,
+  });
+  final VoidCallback? onComment;
   final Post post;
   final VoidCallback onTap;
 
@@ -265,7 +289,9 @@ class EditorialPostCard extends StatelessWidget {
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 10),
-            Text(_meta(post), style: Theme.of(context).textTheme.labelMedium),
+            _PostMetadata(post: post),
+            const SizedBox(height: 6),
+            PostActionsBar(post: post, onComment: onComment ?? onTap),
           ],
         ),
       ),
@@ -274,6 +300,39 @@ class EditorialPostCard extends StatelessWidget {
 }
 
 String _tag(Post post) => post.author ?? 'Editorial';
+
+class _PostMetadata extends StatelessWidget {
+  const _PostMetadata({required this.post});
+  final Post post;
+
+  @override
+  Widget build(BuildContext context) =>
+      Text(_meta(post), style: Theme.of(context).textTheme.labelMedium);
+}
+
+class PostCommentCount extends StatelessWidget {
+  const PostCommentCount({super.key, required this.count, this.color});
+  final int count;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: '$count ${count == 1 ? 'comentario' : 'comentarios'}',
+    excludeSemantics: true,
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.chat_bubble_outline_rounded, size: 15, color: color),
+        const SizedBox(width: 5),
+        Text(
+          '$count',
+          style: Theme.of(context).textTheme.labelMedium
+              ?.copyWith(color: color),
+        ),
+      ],
+    ),
+  );
+}
 
 String _meta(Post post) => [
   if (post.author != null) 'Por ${post.author}',

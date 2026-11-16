@@ -9,14 +9,48 @@ import '../../../core/widgets/async_state.dart';
 import '../../../core/widgets/editorial_components.dart';
 import '../../../core/widgets/olive_shimmer.dart';
 import 'content_providers.dart';
+import 'post_comments_section.dart';
+import 'post_actions_bar.dart';
 
-class PostDetailScreen extends ConsumerWidget {
-  const PostDetailScreen({super.key, required this.postId});
+class PostDetailScreen extends ConsumerStatefulWidget {
+  const PostDetailScreen({
+    super.key,
+    required this.postId,
+    this.scrollToComments = false,
+  });
   final int postId;
+  final bool scrollToComments;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PostDetailScreen> createState() => _PostDetailScreenState();
+}
+
+class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
+  final _commentsKey = GlobalKey();
+  bool _scrolled = false;
+
+  void _showComments() {
+    final target = _commentsKey.currentContext;
+    if (target != null)
+      Scrollable.ensureVisible(
+        target,
+        duration: const Duration(milliseconds: 280),
+        alignment: .05,
+      );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final postId = widget.postId;
     final state = ref.watch(postProvider(postId));
+    if (widget.scrollToComments && state.hasValue && !_scrolled) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _commentsKey.currentContext != null) {
+          _scrolled = true;
+          _showComments();
+        }
+      });
+    }
     return Scaffold(
       body: SafeArea(
         child: LayoutBuilder(
@@ -99,6 +133,16 @@ class PostDetailScreen extends ConsumerWidget {
                                 const SizedBox(height: 30),
                                 _TagList(tags: post.tags),
                               ],
+                              const SizedBox(height: 36),
+                              PostActionsBar(
+                                post: post,
+                                onComment: _showComments,
+                              ),
+                              const SizedBox(height: 12),
+                              PostCommentsSection(
+                                key: _commentsKey,
+                                postId: postId,
+                              ),
                             ],
                           ),
                         ),
@@ -273,31 +317,33 @@ class _DetailSkeleton extends StatelessWidget {
   final double width;
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 780),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          SideBLayout.horizontalPadding(width),
-          20,
-          SideBLayout.horizontalPadding(width),
-          24,
-        ),
-        child: OliveShimmer(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 50),
-              _DetailBlock(height: SideBLayout.featuredPostHeight(width)),
-              const SizedBox(height: 25),
-              const _DetailBlock(height: 12, width: 70),
-              const SizedBox(height: 12),
-              const _DetailBlock(height: 84),
-              const SizedBox(height: 20),
-              const _DetailBlock(height: 16, width: 160),
-              const SizedBox(height: 30),
-              const _DetailBlock(height: 180),
-            ],
+  Widget build(BuildContext context) => SingleChildScrollView(
+    child: Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 780),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            SideBLayout.horizontalPadding(width),
+            20,
+            SideBLayout.horizontalPadding(width),
+            24,
+          ),
+          child: OliveShimmer(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 50),
+                _DetailBlock(height: SideBLayout.featuredPostHeight(width)),
+                const SizedBox(height: 25),
+                const _DetailBlock(height: 12, width: 70),
+                const SizedBox(height: 12),
+                const _DetailBlock(height: 84),
+                const SizedBox(height: 20),
+                const _DetailBlock(height: 16, width: 160),
+                const SizedBox(height: 30),
+                const _DetailBlock(height: 180),
+              ],
+            ),
           ),
         ),
       ),

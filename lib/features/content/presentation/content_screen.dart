@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/layout/side_b_layout.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/theme/side_b_theme.dart';
 import '../../../core/widgets/async_state.dart';
 import '../../../core/widgets/editorial_components.dart';
@@ -13,6 +14,7 @@ import 'content_providers.dart';
 import 'post_detail_screen.dart';
 import 'artist_screens.dart';
 import 'shop_screen.dart';
+import 'reaction_providers.dart';
 
 enum ContentMode { home, editorial, artists, catalog }
 
@@ -43,6 +45,7 @@ class _HomeScreen extends ConsumerWidget {
       return RefreshIndicator(
         color: SideBColors.olive,
         onRefresh: () async {
+          ref.invalidate(reactionUpdatesProvider);
           await ref.refresh(postsProvider.future);
         },
         child: CustomScrollView(
@@ -58,9 +61,11 @@ class _HomeScreen extends ConsumerWidget {
             posts.when(
               loading: () =>
                   SliverToBoxAdapter(child: _HomeSkeleton(width: width)),
-              error: (_, __) => SliverFillRemaining(
+              error: (error, _) => SliverFillRemaining(
                 child: AsyncErrorView(
-                  message: 'No pudimos cargar la portada de SIDE B.',
+                  message: error is ApiException
+                      ? 'No pudimos cargar la portada de SIDE B.\n${error.message}'
+                      : 'No pudimos procesar las publicaciones de SIDE B.',
                   onRetry: () => ref.invalidate(postsProvider),
                 ),
               ),
@@ -98,6 +103,7 @@ class _HomeBody extends StatelessWidget {
       post: posts.first,
       height: SideBLayout.featuredPostHeight(width),
       onTap: () => _open(context, posts.first),
+      onComment: () => _open(context, posts.first, comments: true),
     );
     final recent = _RecentPosts(posts: latest);
 
@@ -138,8 +144,11 @@ class _RecentPosts extends StatelessWidget {
       const _SectionTitle(title: 'Últimas publicaciones'),
       const SizedBox(height: 5),
       ...posts.map(
-        (post) =>
-            CompactPostCard(post: post, onTap: () => _open(context, post)),
+        (post) => CompactPostCard(
+          post: post,
+          onTap: () => _open(context, post),
+          onComment: () => _open(context, post, comments: true),
+        ),
       ),
     ],
   );
@@ -160,10 +169,11 @@ class _EditorialScreen extends ConsumerWidget {
           .toDouble();
       // A two-column tile must include its responsive 1.35 image plus all
       // editorial text below it. A fixed 455px tile overflows on tablets.
-      final editorialTileHeight = ((contentWidth - 24) / 2) / 1.35 + 210;
+      final editorialTileHeight = ((contentWidth - 24) / 2) / 1.35 + 270;
       return RefreshIndicator(
         color: SideBColors.olive,
         onRefresh: () async {
+          ref.invalidate(reactionUpdatesProvider);
           await ref.refresh(postsProvider.future);
         },
         child: CustomScrollView(
@@ -218,6 +228,11 @@ class _EditorialScreen extends ConsumerWidget {
                                     EditorialPostCard(
                                       post: items[index],
                                       onTap: () => _open(context, items[index]),
+                                      onComment: () => _open(
+                                        context,
+                                        items[index],
+                                        comments: true,
+                                      ),
                                     ),
                               )
                             : Column(
@@ -226,6 +241,11 @@ class _EditorialScreen extends ConsumerWidget {
                                       (post) => EditorialPostCard(
                                         post: post,
                                         onTap: () => _open(context, post),
+                                        onComment: () => _open(
+                                          context,
+                                          post,
+                                          comments: true,
+                                        ),
                                       ),
                                     )
                                     .toList(),
@@ -295,8 +315,13 @@ class _SectionTitle extends StatelessWidget {
   );
 }
 
-void _open(BuildContext context, Post post) => Navigator.of(context)
-    .push(MaterialPageRoute(builder: (_) => PostDetailScreen(postId: post.id)));
+void _open(BuildContext context, Post post, {bool comments = false}) =>
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            PostDetailScreen(postId: post.id, scrollToComments: comments),
+      ),
+    );
 
 class _HomeSkeleton extends StatelessWidget {
   const _HomeSkeleton({required this.width});

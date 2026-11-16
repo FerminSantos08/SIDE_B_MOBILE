@@ -15,6 +15,10 @@ final contentRepositoryProvider = Provider(
 final postsProvider = FutureProvider<List<Post>>(
   (ref) => ref.watch(contentRepositoryProvider).posts(),
 );
+final commentsProvider = FutureProvider.autoDispose
+    .family<List<PostComment>, int>(
+      (ref, id) => ref.watch(contentRepositoryProvider).comments(id),
+    );
 final postProvider = FutureProvider.family<Post, int>(
   (ref, id) => ref.watch(contentRepositoryProvider).post(id),
 );

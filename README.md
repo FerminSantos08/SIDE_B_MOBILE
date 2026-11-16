@@ -7,6 +7,8 @@ Aplicación Flutter para la plataforma editorial y tienda musical SIDE B.
 - Navegación inferior flotante adaptable a teléfonos y tabletas.
 - Inicio y Editorial conectados a publicaciones reales.
 - Artículos con estructura editorial, etiquetas, estado y rol de autor.
+- Comentarios en artículos: lectura pública y publicación con sesión iniciada, máximo 500 caracteres, actualización y reintento sin perder el borrador.
+- Reacciones con cápsula Lucide gestual: mantener, deslizar y soltar para elegir; cuatro tipos, contadores y selección persistente. Barra fija Reaccionar, Comentar y Compartir.
 - Catálogo de Artistas, perfiles, álbumes y publicaciones relacionadas.
 - Catálogo de Tienda y detalle de producto con galería, precio y stock.
 - Acciones autenticadas de carrito y lista de deseos.
@@ -31,6 +33,6 @@ flutter run
 
 - Pantallas completas para carrito, lista de deseos, pedidos y configuración de cuenta.
 - Editor, borradores y administración de publicaciones por rol.
-- Reacciones y guardados editoriales cuando existan endpoints.
+- Guardados editoriales cuando existan endpoints.
 - Pruebas unitarias inyectables para autenticación.
 - Validación completa con `flutter analyze` en un entorno sin procesos Flutter/Dart bloqueados.

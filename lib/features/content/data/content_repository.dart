@@ -4,6 +4,23 @@ import 'content_models.dart';
 class ContentRepository {
   ContentRepository(this._api);
   final ApiClient _api;
+
+  Future<List<PostComment>> comments(int postId) async {
+    final data =
+        await _api.get('/posts/$postId/comments') as Map<String, dynamic>;
+    return (data['comments'] as List)
+        .map((item) => PostComment.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> addComment(int postId, String text) async {
+    final comment = text.trim();
+    if (comment.isEmpty || comment.runes.length > 500) {
+      throw ArgumentError('Escribe un comentario de 1 a 500 caracteres.');
+    }
+    await _api.post('/posts/$postId/comments', data: {'comentario': comment});
+  }
+
   Future<List<Post>> posts() async {
     final j = await _api.get('/posts') as Map<String, dynamic>;
     return (j['posts'] as List)

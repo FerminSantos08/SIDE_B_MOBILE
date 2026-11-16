@@ -5,5 +5,5 @@ import 'app/app.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const ProviderScope(child: SideBApp()));
+  runApp(ProviderScope(retry: (_, __) => null, child: const SideBApp()));
 }

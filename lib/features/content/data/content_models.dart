@@ -1,4 +1,28 @@
 import '../../../core/utils/text_formatters.dart';
+import '../../../core/config/api_config.dart';
+
+class PostComment {
+  const PostComment({
+    required this.id,
+    required this.text,
+    required this.author,
+    required this.date,
+    this.avatarUrl,
+  });
+
+  final int id;
+  final String text, author;
+  final String? date;
+  final String? avatarUrl;
+
+  factory PostComment.fromJson(Map<String, dynamic> json) => PostComment(
+    id: json['id'] as int,
+    text: normalizeApiText(json['comentario'] as String),
+    author: normalizeApiText(json['autor'] as String),
+    date: json['fecha']?.toString(),
+    avatarUrl: ApiConfig.mediaUrl(json['avatar_url'] as String?),
+  );
+}
 
 class Post {
   const Post({
@@ -13,23 +37,29 @@ class Post {
     this.tags = const [],
     this.status,
     this.authorRole,
+    this.commentsCount = 0,
+    this.reactionsCount = 0,
   });
   final int id;
   final String title, description, slug;
   final String? content, image, author, date, status, authorRole;
   final List<String> tags;
+  final int commentsCount;
+  final int reactionsCount;
   factory Post.fromJson(Map<String, dynamic> j) => Post(
     id: j['id'] as int,
     title: normalizeApiText(j['titulo'] as String),
     description: normalizeApiText((j['descripcion'] ?? '') as String),
     slug: j['slug'] as String,
     content: _nullableText(j['contenido']),
-    image: j['imagen'] as String?,
+    image: ApiConfig.mediaUrl(j['imagen'] as String?),
     author: _nullableText(j['autor']),
     date: j['fecha_publicacion']?.toString(),
     tags: _tags(j['tags']),
     status: _nullableText(j['estado']),
     authorRole: _nullableText(j['rol_autor']),
+    commentsCount: (j['comments_count'] as num?)?.toInt() ?? 0,
+    reactionsCount: (j['reactions_count'] as num?)?.toInt() ?? 0,
   );
 }
 
@@ -67,7 +97,7 @@ class Artist {
     id: j['id'] as int,
     name: normalizeApiText(j['nombre'] as String),
     genre: _nullableText(j['genero']),
-    image: j['imagen'] as String?,
+    image: ApiConfig.mediaUrl(j['imagen'] as String?),
     bio: _nullableText(j['biografia']),
     albums: ((j['albums'] ?? []) as List)
         .map((x) => Album.fromJson(x as Map<String, dynamic>))
@@ -92,7 +122,7 @@ class Album {
   factory Album.fromJson(Map<String, dynamic> j) => Album(
     id: j['id'] as int,
     title: normalizeApiText(j['titulo'] as String),
-    cover: j['portada'] as String?,
+    cover: ApiConfig.mediaUrl(j['portada'] as String?),
     type: _nullableText(j['tipo']),
     releaseDate: j['fecha_lanzamiento']?.toString(),
   );
@@ -122,10 +152,11 @@ class Product {
     price: j['precio'] as num,
     category: _nullableText(j['categoria']),
     brand: _nullableText(j['marca']),
-    image: j['imagen'] as String?,
+    image: ApiConfig.mediaUrl(j['imagen'] as String?),
     images: [j['imagen'], j['imagen_2'], j['imagen_3'], j['imagen_4']]
         .whereType<String>()
         .where((image) => image.isNotEmpty)
+        .map((image) => ApiConfig.mediaUrl(image)!)
         .toList(growable: false),
     description: _nullableText(j['descripcion']),
     stock: j['stock'] as int?,

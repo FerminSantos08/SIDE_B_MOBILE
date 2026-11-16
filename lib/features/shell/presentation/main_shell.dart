@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/auth.dart';
 import '../../content/presentation/content_screen.dart';
 import '../../content/presentation/content_providers.dart';
+import '../../content/presentation/reaction_providers.dart';
 import '../../creation/presentation/creation_hub_screen.dart';
 import '../../profile/presentation/profile_screen.dart';
 import 'side_b_bottom_navigation.dart';
@@ -33,12 +34,15 @@ class _MainShellState extends ConsumerState<MainShell>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      ref.invalidate(reactionUpdatesProvider);
+      ref.invalidate(selectedReactionProvider);
       ref.invalidate(postsProvider);
     }
   }
 
   void _selectDestination(int index) {
     if (index == 0 || index == 1) {
+      ref.invalidate(reactionUpdatesProvider);
       ref.invalidate(postsProvider);
     }
     setState(() => _index = index);
