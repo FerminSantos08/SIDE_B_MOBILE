@@ -2,16 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:side_b/app/app.dart';
+import 'package:side_b/features/auth/auth.dart';
 import 'package:side_b/features/content/presentation/content_providers.dart';
 import 'package:side_b/features/shell/presentation/side_b_bottom_navigation.dart';
 
+class _Guest extends AuthController {
+  @override
+  Future<AuthUser?> build() async => null;
+}
+
 void main() {
   testWidgets('renders SIDE B navigation', (tester) async {
-    final semantics = tester.ensureSemantics();
-    addTearDown(semantics.dispose);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [postsProvider.overrideWith((ref) => [])],
+        retry: (_, _) => null,
+        overrides: [
+          postsProvider.overrideWith((ref) => []),
+          artistsProvider.overrideWith((ref) => []),
+          productsProvider.overrideWith((ref) => []),
+          authProvider.overrideWith(_Guest.new),
+        ],
         child: const SideBApp(),
       ),
     );
@@ -29,6 +39,17 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text(label), findsOneWidget);
     }
+    await tester.tap(find.byKey(const ValueKey('side-b-nav-Tienda')));
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('Inicio'), findsOneWidget);
+    tester.view.viewInsets = const FakeViewPadding(bottom: 280);
+    await tester.pumpAndSettle();
+    expect(find.byType(SideBBottomNavigation), findsNothing);
+    tester.view.resetViewInsets();
+    await tester.pumpAndSettle();
+    expect(find.byType(SideBBottomNavigation), findsOneWidget);
   });
 
   testWidgets('keeps the floating navigation within its maximum width', (
@@ -42,7 +63,11 @@ void main() {
       Size(900, 800),
       Size(900, 600),
     ];
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
     for (final surface in surfaces) {
+      tester.view.physicalSize = surface;
       await tester.binding.setSurfaceSize(surface);
       await tester.pumpWidget(
         const MaterialApp(
@@ -66,7 +91,9 @@ void main() {
         greaterThanOrEqualTo(48),
       );
       expect(
-        tester.getCenter(find.byKey(const ValueKey('side-b-selected-Inicio'))).dy,
+        tester
+            .getCenter(find.byKey(const ValueKey('side-b-selected-Inicio')))
+            .dy,
         closeTo(
           tester
               .getCenter(
@@ -77,9 +104,11 @@ void main() {
         ),
       );
       expect(
-        tester.getBottomRight(
-          find.byKey(const ValueKey('side-b-bottom-navigation-pill')),
-        ).dy,
+        tester
+            .getBottomRight(
+              find.byKey(const ValueKey('side-b-bottom-navigation-pill')),
+            )
+            .dy,
         closeTo(surface.height - 16, .1),
       );
       expect(tester.takeException(), isNull);

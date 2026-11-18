@@ -1,3 +1,5 @@
+import 'package:side_b/core/config/api_config.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -157,7 +159,7 @@ void main() {
     });
     expect(
       comment.avatarUrl,
-      contains('192.168.3.22:8000/media/uploads/perfiles/ana.webp'),
+      contains('${ApiConfig.baseUrl}/media/uploads/perfiles/ana.webp'),
     );
     final post = Post.fromJson({
       'id': 5,

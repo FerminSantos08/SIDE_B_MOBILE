@@ -65,6 +65,7 @@ class PublicationDraft {
     this.tags,
     this.artistIds = const [],
     this.albumIds = const [],
+    this.coverToken,
   });
   final String title;
   final String? description;
@@ -72,6 +73,7 @@ class PublicationDraft {
   final String? tags;
   final String state;
   final List<int> artistIds;
+  final String? coverToken;
   final List<int> albumIds;
 
   Map<String, dynamic> toJson() => {
@@ -82,12 +84,44 @@ class PublicationDraft {
     'state': state,
     'artist_ids': artistIds,
     'album_ids': albumIds,
+    if (coverToken != null) 'cover_token': coverToken,
   };
 }
 
 class EditorialRepository {
   EditorialRepository(this._api);
   final ApiClient _api;
+
+  Future<String> uploadCover(List<int> bytes) async {
+    final data = await _api.postBytes(
+      '/editorial/covers',
+      bytes,
+    ) as Map<String, dynamic>;
+    return data['token'] as String;
+  }
+
+  Future<List<Post>> publications() async {
+    final data = await _api.get('/editorial/posts') as Map<String, dynamic>;
+    return (data['posts'] as List)
+        .map((row) => Post.fromJson(row as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<EditablePublication> editable(int id) async =>
+      EditablePublication.fromJson(
+        await _api.get('/editorial/posts/$id') as Map<String, dynamic>,
+      );
+
+  Future<EditablePublication> update(
+    int id,
+    PublicationDraft draft,
+    String revision,
+  ) async => EditablePublication.fromJson(
+    await _api.put(
+      '/editorial/posts/$id',
+      data: {...draft.toJson(), 'revision': revision},
+    ) as Map<String, dynamic>,
+  );
 
   Future<EditorialOptions> options() async => EditorialOptions.fromJson(
     await _api.get('/posts/editorial/options') as Map<String, dynamic>,
@@ -98,4 +132,23 @@ class EditorialRepository {
         await _api.post('/posts', data: draft.toJson()) as Map<String, dynamic>;
     return Post.fromJson(data['post'] as Map<String, dynamic>);
   }
+}
+
+class EditablePublication {
+  const EditablePublication({
+    required this.post,
+    required this.artistIds,
+    required this.albumIds,
+    required this.revision,
+  });
+  final Post post;
+  final List<int> artistIds, albumIds;
+  final String revision;
+  factory EditablePublication.fromJson(Map<String, dynamic> json) =>
+      EditablePublication(
+        post: Post.fromJson(json['post'] as Map<String, dynamic>),
+        artistIds: (json['artist_ids'] as List).cast<int>(),
+        albumIds: (json['album_ids'] as List).cast<int>(),
+        revision: json['revision'] as String,
+      );
 }

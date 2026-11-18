@@ -46,7 +46,8 @@ class _HomeScreen extends ConsumerWidget {
         color: SideBColors.olive,
         onRefresh: () async {
           ref.invalidate(reactionUpdatesProvider);
-          await ref.refresh(postsProvider.future);
+          ref.invalidate(postsProvider);
+          await ref.read(postsProvider.future);
         },
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -174,7 +175,8 @@ class _EditorialScreen extends ConsumerWidget {
         color: SideBColors.olive,
         onRefresh: () async {
           ref.invalidate(reactionUpdatesProvider);
-          await ref.refresh(postsProvider.future);
+          ref.invalidate(postsProvider);
+          await ref.read(postsProvider.future);
         },
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),

@@ -25,13 +25,17 @@ class ApiClient {
         },
         onResponse: (response, handler) {
           if (kDebugMode) {
-            debugPrint('SIDE B API <- ${response.statusCode} ${response.requestOptions.uri}');
+            debugPrint(
+              'SIDE B API <- ${response.statusCode} ${response.requestOptions.uri}',
+            );
           }
           handler.next(response);
         },
         onError: (error, handler) {
           if (kDebugMode) {
-            debugPrint('SIDE B API ERROR ${error.type.name} ${error.requestOptions.uri}: ${error.error ?? error.message}');
+            debugPrint(
+              'SIDE B API ERROR ${error.type.name} ${error.requestOptions.uri}: ${error.error ?? error.message}',
+            );
           }
           handler.next(error);
         },
@@ -40,6 +44,29 @@ class ApiClient {
   }
   final TokenStorage _tokenStorage;
   final Dio dio;
+
+  Future<dynamic> uploadBytes(String path, List<int> bytes) =>
+      _upload(path, bytes, 'PUT');
+  Future<dynamic> postBytes(String path, List<int> bytes) =>
+      _upload(path, bytes, 'POST');
+
+  Future<dynamic> _upload(String path, List<int> bytes, String method) async {
+    try {
+      return (await _withKnownHosts(
+        () => dio.request<dynamic>(
+          path,
+          data: Stream<List<int>>.value(bytes),
+          options: Options(
+            method: method,
+            contentType: 'application/octet-stream',
+            headers: {Headers.contentLengthHeader: bytes.length},
+          ),
+        ),
+      )).data;
+    } on DioException catch (error) {
+      throw _mapError(error);
+    }
+  }
 
   Future<Response<T>> _withKnownHosts<T>(
     Future<Response<T>> Function() request,
@@ -78,9 +105,8 @@ class ApiClient {
 
   Future<dynamic> post(String path, {Object? data}) async {
     try {
-      return (await _withKnownHosts(
-        () => dio.post<dynamic>(path, data: data),
-      )).data;
+      return (await _withKnownHosts(() => dio.post<dynamic>(path, data: data)))
+          .data;
     } on DioException catch (e) {
       throw _mapError(e);
     }
@@ -96,9 +122,8 @@ class ApiClient {
 
   Future<dynamic> put(String path, {Object? data}) async {
     try {
-      return (await _withKnownHosts(
-        () => dio.put<dynamic>(path, data: data),
-      )).data;
+      return (await _withKnownHosts(() => dio.put<dynamic>(path, data: data)))
+          .data;
     } on DioException catch (e) {
       throw _mapError(e);
     }

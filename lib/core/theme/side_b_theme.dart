@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/services.dart';
 
 class SideBColors {
   SideBColors._();
@@ -28,40 +28,126 @@ class SideBTheme {
       outline: SideBColors.border,
       error: SideBColors.error,
     ),
-    textTheme: GoogleFonts.spaceGroteskTextTheme().copyWith(
-      displaySmall: GoogleFonts.instrumentSerif(
+    fontFamily: 'SpaceGrotesk',
+    textTheme: const TextTheme(
+      displaySmall: TextStyle(
+        fontFamily: 'InstrumentSerif',
         fontSize: 40,
         height: .96,
         color: SideBColors.graphite,
       ),
-      headlineMedium: GoogleFonts.instrumentSerif(
+      headlineMedium: TextStyle(
+        fontFamily: 'InstrumentSerif',
         fontSize: 32,
         height: 1,
         color: SideBColors.graphite,
       ),
-      titleLarge: GoogleFonts.spaceGrotesk(
+      titleLarge: TextStyle(
+        fontFamily: 'SpaceGrotesk',
         fontSize: 18,
         height: 1.15,
         fontWeight: FontWeight.w600,
         color: SideBColors.graphite,
       ),
-      bodyLarge: GoogleFonts.spaceGrotesk(
+      bodyLarge: TextStyle(
+        fontFamily: 'SpaceGrotesk',
         fontSize: 16,
         height: 1.5,
         color: SideBColors.graphite,
       ),
-      bodyMedium: GoogleFonts.spaceGrotesk(
+      bodyMedium: TextStyle(
+        fontFamily: 'SpaceGrotesk',
         fontSize: 14,
         height: 1.45,
         color: SideBColors.muted,
       ),
-      labelMedium: GoogleFonts.spaceGrotesk(
+      labelMedium: TextStyle(
+        fontFamily: 'SpaceGrotesk',
         fontSize: 10,
         height: 1.2,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.25,
         color: SideBColors.muted,
       ),
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: SideBColors.ivory,
+      foregroundColor: SideBColors.graphite,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      centerTitle: false,
+      titleTextStyle: TextStyle(
+        fontFamily: 'SpaceGrotesk',
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        color: SideBColors.graphite,
+      ),
+      systemOverlayStyle: SystemUiOverlayStyle.dark,
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(48, 50),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        textStyle: const TextStyle(
+          fontFamily: 'SpaceGrotesk',
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          letterSpacing: .6,
+        ),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: SideBColors.graphite,
+        minimumSize: const Size(48, 48),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        side: const BorderSide(color: SideBColors.border),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        textStyle: const TextStyle(
+          fontFamily: 'SpaceGrotesk',
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: SideBColors.paper,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: SideBColors.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: SideBColors.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: SideBColors.olive, width: 1.5),
+      ),
+      errorMaxLines: 3,
+    ),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: SideBColors.graphite,
+      contentTextStyle: const TextStyle(
+        fontFamily: 'SpaceGrotesk',
+        fontSize: 14,
+        color: SideBColors.paper,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    ),
+    progressIndicatorTheme: const ProgressIndicatorThemeData(
+      color: SideBColors.olive,
+      strokeWidth: 2.5,
+    ),
+    textSelectionTheme: const TextSelectionThemeData(
+      cursorColor: SideBColors.olive,
+      selectionColor: Color(0x44858C77),
+      selectionHandleColor: SideBColors.olive,
     ),
     dividerTheme: const DividerThemeData(color: SideBColors.border, space: 1),
   );

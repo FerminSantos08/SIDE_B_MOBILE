@@ -8,6 +8,7 @@ import '../../../core/widgets/async_state.dart';
 import '../../../core/widgets/editorial_components.dart';
 import '../data/content_models.dart';
 import 'content_providers.dart';
+import '../../wishlist/wishlist.dart';
 
 class ProductDetailScreen extends ConsumerWidget {
   const ProductDetailScreen({super.key, required this.productId});
@@ -40,8 +41,8 @@ class _ProductDetail extends ConsumerStatefulWidget {
 }
 
 class _ProductDetailState extends ConsumerState<_ProductDetail> {
-  var _saved = false;
   var _busy = false;
+  int _imageIndex = 0;
 
   Future<void> _addToCart() async {
     await _runAction(
@@ -51,31 +52,15 @@ class _ProductDetailState extends ConsumerState<_ProductDetail> {
     ref.invalidate(cartProvider);
   }
 
-  Future<void> _toggleWishlist() async {
-    await _runAction(
-      () => _saved
-          ? ref
-                .read(contentRepositoryProvider)
-                .removeFromWishlist(widget.product.id)
-          : ref
-                .read(contentRepositoryProvider)
-                .addToWishlist(widget.product.id),
-      _saved ? 'Eliminado de lista de deseos' : 'Guardado en lista de deseos',
-      toggleSaved: true,
-    );
-  }
-
   Future<void> _runAction(
     Future<void> Function() action,
-    String message, {
-    bool toggleSaved = false,
-  }) async {
+    String message,
+  ) async {
     if (_busy) return;
     setState(() => _busy = true);
     try {
       await action();
       if (mounted) {
-        if (toggleSaved) setState(() => _saved = !_saved);
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(message)));
       }
@@ -117,18 +102,36 @@ class _ProductDetailState extends ConsumerState<_ProductDetail> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (images.length <= 1)
-                        NetworkCover(url: product.image, aspectRatio: 1)
+                        NetworkCover(
+                          url: product.image,
+                          aspectRatio: 1,
+                          fit: BoxFit.contain,
+                        )
                       else
-                        SizedBox(
-                          height: 360,
-                          child: PageView(
-                            children: images
-                                .map(
-                                  (image) =>
-                                      NetworkCover(url: image, aspectRatio: 1),
-                                )
-                                .toList(),
-                          ),
+                        Column(
+                          children: [
+                            AspectRatio(
+                              aspectRatio: 1,
+                              child: PageView(
+                                onPageChanged: (index) =>
+                                    setState(() => _imageIndex = index),
+                                children: images
+                                    .map(
+                                      (image) => NetworkCover(
+                                        url: image,
+                                        aspectRatio: 1,
+                                        fit: BoxFit.contain,
+                                      ),
+                                    )
+                                    .toList(),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              '${_imageIndex + 1} / ${images.length}',
+                              style: Theme.of(context).textTheme.labelMedium,
+                            ),
+                          ],
                         ),
                       const SizedBox(height: 25),
                       Text(
@@ -149,13 +152,15 @@ class _ProductDetailState extends ConsumerState<_ProductDetail> {
                         ),
                       ],
                       const SizedBox(height: 20),
-                      Row(
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 12,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Text(
                             _price(product.price),
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
-                          const Spacer(),
                           _StockLabel(stock: product.stock),
                         ],
                       ),
@@ -174,15 +179,7 @@ class _ProductDetailState extends ConsumerState<_ProductDetail> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          IconButton(
-                            onPressed: _busy ? null : _toggleWishlist,
-                            tooltip: _saved
-                                ? 'Quitar de lista de deseos'
-                                : 'Guardar en lista de deseos',
-                            icon: Icon(
-                              _saved ? Icons.favorite : Icons.favorite_border,
-                            ),
-                          ),
+                          WishlistButton(productId: product.id),
                         ],
                       ),
                       if (product.description != null) ...[

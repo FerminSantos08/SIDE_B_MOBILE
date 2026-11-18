@@ -34,7 +34,6 @@ dependencies:
   dio: ^5.11.1
   flutter_riverpod: ^3.4.3
   flutter_secure_storage: ^10.3.4
-  google_fonts: ^8.2.1
   lucide_icons_flutter: ^4.0.1
 
 dev_dependencies:
@@ -56,11 +55,21 @@ flutter:
 
   assets:
     - lib/favicons/sideb.png
+    - assets/fonts/
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  fonts:
+    - family: SpaceGrotesk
+      fonts:
+        - asset: assets/fonts/SpaceGrotesk.ttf
+    - family: InstrumentSerif
+      fonts:
+        - asset: assets/fonts/InstrumentSerif-Regular.ttf
+
 
   # To add assets to your application, add an assets section, like this:
   # assets:

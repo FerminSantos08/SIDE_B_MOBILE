@@ -11,6 +11,7 @@ import '../../../core/widgets/olive_shimmer.dart';
 import 'content_providers.dart';
 import 'post_comments_section.dart';
 import 'post_actions_bar.dart';
+import '../../library/presentation/saved_posts_screen.dart';
 
 class PostDetailScreen extends ConsumerStatefulWidget {
   const PostDetailScreen({
@@ -74,6 +75,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                       icon: const Icon(LucideIcons.arrowLeft),
                     ),
                     title: const Text('SIDE B'),
+                    actions: [SavePostButton(postId: postId)],
                   ),
                   SliverToBoxAdapter(
                     child: Center(

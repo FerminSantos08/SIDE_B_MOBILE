@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../features/content/data/content_models.dart';
 import '../../features/content/presentation/post_actions_bar.dart';
 import '../theme/side_b_theme.dart';
+import 'olive_shimmer.dart';
 import '../utils/text_formatters.dart';
 
 class EditorialHeader extends StatelessWidget {
@@ -62,7 +63,9 @@ class NetworkCover extends StatelessWidget {
     required this.aspectRatio,
     this.height,
     this.child,
+    this.fit = BoxFit.cover,
   });
+  final BoxFit fit;
   final String? url;
   final double aspectRatio;
   final double? height;
@@ -71,26 +74,22 @@ class NetworkCover extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cover = ClipRRect(
-      borderRadius: BorderRadius.circular(3),
+      borderRadius: BorderRadius.circular(12),
       child: Stack(
         fit: StackFit.expand,
         children: [
-          const ColoredBox(color: SideBColors.olive),
+          const ColoredBox(color: SideBColors.skeleton),
           if (url != null)
             Image.network(
               url!,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox(),
+              fit: fit,
+              frameBuilder: (context, image, frame, synchronous) =>
+                  synchronous || frame != null
+                  ? image
+                  : const OliveShimmer(child: SkeletonBlock()),
+              errorBuilder: (_, _, _) => const _CoverPlaceholder(),
             ),
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.transparent, Color(0xB3292A27)],
-              ),
-            ),
-          ),
+          if (url == null) const _CoverPlaceholder(),
           if (child != null) child!,
         ],
       ),
@@ -117,60 +116,70 @@ class FeaturedPostCard extends StatelessWidget {
   Widget build(BuildContext context) => Semantics(
     button: true,
     label: post.title,
-    child: InkWell(
-      onTap: onTap,
-      child: NetworkCover(
-        url: post.image,
-        aspectRatio: 1.55,
-        height: height,
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Text(
-                _tag(post).toUpperCase(),
-                style: Theme.of(context).textTheme.labelMedium
-                    ?.copyWith(color: SideBColors.ivory),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                post.title,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.headlineMedium
-                    ?.copyWith(color: SideBColors.ivory),
-              ),
-              const SizedBox(height: 10),
-              Row(
+    child: Material(
+      color: SideBColors.paper,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            NetworkCover(url: post.image, aspectRatio: 1.55, height: height),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      _meta(post),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelMedium
-                          ?.copyWith(color: SideBColors.ivory),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _tag(post).toUpperCase(),
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(color: SideBColors.accent),
+                        ),
+                      ),
+                      const Icon(
+                        LucideIcons.arrowUpRight,
+                        size: 18,
+                        color: SideBColors.olive,
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  const Icon(
-                    LucideIcons.arrowUpRight,
-                    color: SideBColors.ivory,
-                    size: 20,
+                  const SizedBox(height: 12),
+                  Text(
+                    post.title,
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.headlineMedium,
                   ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _meta(post),
+                    style: Theme.of(context).textTheme.labelMedium,
+                  ),
+                  const SizedBox(height: 14),
+                  const Divider(),
+                  const SizedBox(height: 6),
+                  PostActionsBar(post: post, onComment: onComment ?? onTap),
                 ],
               ),
-              PostActionsBar(
-                post: post,
-                onComment: onComment ?? onTap,
-                color: SideBColors.ivory,
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
+    ),
+  );
+}
+
+class _CoverPlaceholder extends StatelessWidget {
+  const _CoverPlaceholder();
+  @override
+  Widget build(BuildContext context) => const ColoredBox(
+    color: SideBColors.skeleton,
+    child: Center(
+      child: Icon(LucideIcons.image, size: 28, color: SideBColors.muted),
     ),
   );
 }

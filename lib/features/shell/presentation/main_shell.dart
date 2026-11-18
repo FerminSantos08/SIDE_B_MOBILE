@@ -61,23 +61,36 @@ class _MainShellState extends ConsumerState<MainShell>
       const ContentScreen(mode: ContentMode.catalog),
       const ProfileScreen(),
     ];
-    return Scaffold(
-      body: Stack(
-        children: [
-          SafeArea(
-            child: IndexedStack(index: _index, children: pages),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: SideBBottomNavigation(
-              selectedIndex: _index,
-              showCreateDestination: canPublish,
-              onDestinationSelected: _selectDestination,
+    return PopScope(
+      canPop: _index == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _index != 0) _selectDestination(0);
+      },
+      child: Scaffold(
+        body: Stack(
+          children: [
+            SafeArea(
+              child: IndexedStack(
+                index: _index,
+                children: [
+                  for (var i = 0; i < pages.length; i++)
+                    TickerMode(enabled: i == _index, child: pages[i]),
+                ],
+              ),
             ),
-          ),
-        ],
+            if (MediaQuery.viewInsetsOf(context).bottom == 0)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: SideBBottomNavigation(
+                  selectedIndex: _index,
+                  showCreateDestination: canPublish,
+                  onDestinationSelected: _selectDestination,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

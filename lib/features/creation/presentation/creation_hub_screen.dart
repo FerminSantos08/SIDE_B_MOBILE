@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
@@ -9,9 +10,12 @@ import '../../auth/auth.dart';
 import '../../content/presentation/content_providers.dart';
 import '../data/editorial_repository.dart';
 import 'creation_providers.dart';
+import '../../library/data/saved_posts_repository.dart';
+import '../../content/presentation/post_detail_screen.dart';
 
 class CreationHubScreen extends ConsumerStatefulWidget {
-  const CreationHubScreen({super.key});
+  const CreationHubScreen({super.key, this.initial});
+  final EditablePublication? initial;
 
   @override
   ConsumerState<CreationHubScreen> createState() => _CreationHubScreenState();
@@ -28,6 +32,53 @@ class _CreationHubScreenState extends ConsumerState<CreationHubScreen> {
   var _publicationState = 'borrador';
   var _saving = false;
   String? _error;
+
+  String? _revision;
+  Uint8List? _coverBytes;
+  String? _coverToken, _coverUrl;
+  bool _pickingCover = false;
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initial;
+    if (initial != null) {
+      _title.text = initial.post.title;
+      _description.text = initial.post.description;
+      _tags.text = initial.post.tags.join(', ');
+      _content.text = initial.post.content ?? initial.post.description;
+      _publicationState = initial.post.status ?? 'borrador';
+      _artistIds.addAll(initial.artistIds);
+      _albumIds.addAll(initial.albumIds);
+      _revision = initial.revision;
+      _coverUrl = initial.post.image;
+    }
+  }
+
+  Future<void> _pickCover() async {
+    if (_saving || _pickingCover) return;
+    setState(() {
+      _pickingCover = true;
+      _error = null;
+    });
+    try {
+      final bytes = await const MethodChannel('side_b/profile')
+          .invokeMethod<Uint8List>('pickAvatar');
+      if (mounted && bytes != null)
+        setState(() {
+          _coverBytes = bytes;
+          _coverToken = null;
+        });
+    } catch (error) {
+      if (mounted)
+        setState(
+          () => _error = error is PlatformException
+              ? error.message
+              : 'No pudimos seleccionar la portada.',
+        );
+    } finally {
+      if (mounted) setState(() => _pickingCover = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -47,12 +98,15 @@ class _CreationHubScreenState extends ConsumerState<CreationHubScreen> {
     return CustomScrollView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       slivers: [
-        const SliverToBoxAdapter(
+        SliverToBoxAdapter(
           child: EditorialHeader(
             eyebrow: 'Herramientas de creacion',
-            title: 'Comparte\nalgo distinto.',
-            description:
-                'Escribe, relaciona y guarda una nueva publicacion editorial.',
+            title: widget.initial == null
+                ? 'Comparte\nalgo distinto.'
+                : 'Edita tu\npublicación.',
+            description: widget.initial == null
+                ? 'Escribe, relaciona y guarda una nueva publicacion editorial.'
+                : 'Actualiza el contenido, sus relaciones y el estado editorial.',
           ),
         ),
         options.when(
@@ -76,6 +130,54 @@ class _CreationHubScreenState extends ConsumerState<CreationHubScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        if (_coverBytes != null || _coverUrl != null) ...[
+                          SizedBox(
+                            height: 180,
+                            child: _coverBytes != null
+                                ? Image.memory(
+                                    _coverBytes!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) => const Center(
+                                      child: Text(
+                                        'No pudimos mostrar la imagen.',
+                                      ),
+                                    ),
+                                  )
+                                : Image.network(
+                                    _coverUrl!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) => const Center(
+                                      child: Text('Portada no disponible.'),
+                                    ),
+                                  ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        OutlinedButton.icon(
+                          onPressed: _saving || _pickingCover
+                              ? null
+                              : _pickCover,
+                          icon: const Icon(Icons.add_photo_alternate_outlined),
+                          label: Text(
+                            _pickingCover
+                                ? 'ABRIENDO FOTOS…'
+                                : 'ELEGIR PORTADA',
+                          ),
+                        ),
+                        if (_coverBytes != null)
+                          TextButton(
+                            onPressed: _saving
+                                ? null
+                                : () => setState(() {
+                                    _coverBytes = null;
+                                    _coverToken = null;
+                                  }),
+                            child: const Text('CANCELAR CAMBIO DE PORTADA'),
+                          ),
+                        const Text(
+                          'JPG, PNG o WebP · Hasta 5 MB. La portada se guarda junto con la publicación.',
+                        ),
+                        const SizedBox(height: 20),
                         _field(
                           controller: _title,
                           label: 'Titulo',
@@ -207,15 +309,34 @@ class _CreationHubScreenState extends ConsumerState<CreationHubScreen> {
                             backgroundColor: SideBColors.accent,
                             minimumSize: const Size.fromHeight(52),
                           ),
-                          onPressed: _saving ? null : _save,
+                          onPressed: _saving || _pickingCover ? null : _save,
                           icon: const Icon(Icons.publish_outlined),
                           label: Text(
                             _saving
                                 ? 'GUARDANDO...'
+                                : widget.initial != null
+                                ? 'GUARDAR CAMBIOS'
                                 : _publicationState == 'publicado'
                                 ? 'PUBLICAR'
                                 : 'GUARDAR PUBLICACION',
                           ),
+                        ),
+                        TextButton.icon(
+                          onPressed: _saving
+                              ? null
+                              : () => showDialog<void>(
+                                  context: context,
+                                  builder: (context) => Dialog(
+                                    child: SingleChildScrollView(
+                                      padding: const EdgeInsets.all(24),
+                                      child: HtmlArticleBody(
+                                        html: _content.text,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                          icon: const Icon(Icons.preview_outlined),
+                          label: const Text('VISTA PREVIA'),
                         ),
                         if (_error != null) ...[
                           const SizedBox(height: 12),
@@ -248,6 +369,7 @@ class _CreationHubScreenState extends ConsumerState<CreationHubScreen> {
     int? maxLines = 1,
     String? Function(String?)? validator,
   }) => TextFormField(
+    enabled: !_saving,
     controller: controller,
     minLines: minLines,
     maxLines: maxLines,
@@ -265,48 +387,80 @@ class _CreationHubScreenState extends ConsumerState<CreationHubScreen> {
   );
 
   Future<void> _save() async {
-    if (!_form.currentState!.validate() || _saving) return;
+    if (!_form.currentState!.validate() || _saving || _pickingCover) return;
+    FocusScope.of(context).unfocus();
     final submittedState = _publicationState;
     setState(() {
       _saving = true;
       _error = null;
     });
     try {
-      await ref
-          .read(editorialRepositoryProvider)
-          .create(
-            PublicationDraft(
-              title: _title.text.trim(),
-              description: _emptyToNull(_description.text),
-              content: _content.text.trim(),
-              tags: _emptyToNull(_tags.text),
-              state: submittedState,
-              artistIds: _artistIds.toList(growable: false),
-              albumIds: _albumIds.toList(growable: false),
-            ),
-          );
-      ref.invalidate(postsProvider);
+      final repository = ref.read(editorialRepositoryProvider);
+      if (_coverBytes != null && _coverToken == null)
+        _coverToken = await repository.uploadCover(_coverBytes!);
       if (!mounted) return;
-      setState(() {
-        _title.clear();
-        _description.clear();
-        _tags.clear();
-        _content.clear();
-        _artistIds.clear();
-        _albumIds.clear();
-        _publicationState = 'borrador';
-      });
+      final draft = PublicationDraft(
+        title: _title.text.trim(),
+        description: _emptyToNull(_description.text),
+        content: _content.text.trim(),
+        tags: _emptyToNull(_tags.text),
+        state: submittedState,
+        coverToken: _coverToken,
+        artistIds: _artistIds.toList(growable: false),
+        albumIds: _albumIds.toList(growable: false),
+      );
+      if (widget.initial == null) {
+        await repository.create(draft);
+      } else {
+        final saved = await repository.update(
+          widget.initial!.post.id,
+          draft,
+          _revision!,
+        );
+        _revision = saved.revision;
+        if (mounted) {
+          _content.text = saved.post.content ?? _content.text;
+          _coverUrl = saved.post.image;
+        }
+      }
+      _coverBytes = null;
+      _coverToken = null;
+      if (widget.initial == null) _coverUrl = null;
+      ref.invalidate(postsProvider);
+      ref.invalidate(managedPostsProvider);
+      ref.invalidate(savedPostsProvider);
+      if (widget.initial != null)
+        ref.invalidate(postProvider(widget.initial!.post.id));
+      if (!mounted) return;
+      if (widget.initial == null)
+        setState(() {
+          _title.clear();
+          _description.clear();
+          _tags.clear();
+          _content.clear();
+          _artistIds.clear();
+          _albumIds.clear();
+          _publicationState = 'borrador';
+        });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            submittedState == 'publicado'
+            widget.initial != null
+                ? 'Publicación actualizada.'
+                : submittedState == 'publicado'
                 ? 'Publicacion creada.'
                 : 'Publicacion guardada como borrador.',
           ),
         ),
       );
     } on ApiException catch (error) {
+      if (error.statusCode == 410) _coverToken = null;
       if (mounted) setState(() => _error = error.message);
+    } catch (_) {
+      if (mounted)
+        setState(
+          () => _error = 'No pudimos guardar la publicación. Conservamos tus cambios para que puedas reintentar.',
+        );
     } finally {
       if (mounted) setState(() => _saving = false);
     }

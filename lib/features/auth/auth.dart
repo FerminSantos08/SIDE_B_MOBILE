@@ -1,31 +1,58 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_exception.dart';
+import '../../core/config/api_config.dart';
 import '../content/presentation/content_providers.dart';
 
 class AuthUser {
-  const AuthUser({required this.id, required this.name, required this.email, required this.role});
+  const AuthUser({
+    required this.id,
+    required this.name,
+    required this.email,
+    required this.role,
+    this.username = '',
+    this.biography = '',
+    this.avatarUrl,
+    this.roleId = 0,
+  });
   final int id;
   final String name, email, role;
+  final String username, biography;
+  final String? avatarUrl;
+  final int roleId;
+  bool get canManageAllPosts => roleId == 3;
   bool get canPublish {
     final normalized = role.toLowerCase();
-    return normalized.contains('artist') || normalized.contains('editor') || normalized.contains('producer') || normalized.contains('manager');
+    return {2, 3, 4}.contains(roleId) ||
+        normalized.contains('artist') ||
+        normalized.contains('editor') ||
+        normalized.contains('producer') ||
+        normalized.contains('manager');
   }
+
   factory AuthUser.fromJson(Map<String, dynamic> json) => AuthUser(
     id: json['id'] as int,
     name: json['profile']?['alias']?.toString() ?? json['name'] as String,
     email: json['email'] as String,
     role: json['role']?['name']?.toString() ?? 'Listener',
+    roleId: (json['role']?['id'] as num?)?.toInt() ?? 0,
+    username: json['name'] as String,
+    biography: json['profile']?['biografia']?.toString() ?? '',
+    avatarUrl: ApiConfig.mediaUrl(json['profile']?['avatar_url'] as String?),
   );
 }
 
 class AuthController extends AsyncNotifier<AuthUser?> {
+  void updateProfile(AuthUser user) => state = AsyncData(user);
   @override
   Future<AuthUser?> build() async {
     final token = await ref.read(tokenStorageProvider).read();
     if (token == null) return null;
     try {
-      return AuthUser.fromJson(await ref.read(apiClientProvider).get('/auth/me') as Map<String, dynamic>);
+      return AuthUser.fromJson(
+        await ref.read(apiClientProvider).get('/auth/me')
+            as Map<String, dynamic>,
+      );
     } on ApiException catch (error) {
       if (error.statusCode == 401) {
         await ref.read(tokenStorageProvider).clear();
@@ -38,26 +65,60 @@ class AuthController extends AsyncNotifier<AuthUser?> {
   Future<void> login(String email, String password) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final data = await ref.read(apiClientProvider).post('/auth/login', data: {'email': email, 'password': password}) as Map<String, dynamic>;
-      await ref.read(tokenStorageProvider).write(data['access_token'] as String);
-      return AuthUser.fromJson(await ref.read(apiClientProvider).get('/auth/me') as Map<String, dynamic>);
+      final data =
+          await ref
+                  .read(apiClientProvider)
+                  .post(
+                    '/auth/login',
+                    data: {'email': email, 'password': password},
+                  )
+              as Map<String, dynamic>;
+      await ref
+          .read(tokenStorageProvider)
+          .write(data['access_token'] as String);
+      return AuthUser.fromJson(
+        await ref.read(apiClientProvider).get('/auth/me')
+            as Map<String, dynamic>,
+      );
     });
+    ref.invalidate(cartProvider);
   }
 
   Future<void> register(String name, String email, String password) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      await ref.read(apiClientProvider).post('/auth/register', data: {'username': name, 'email': email, 'password': password});
-      final data = await ref.read(apiClientProvider).post('/auth/login', data: {'email': email, 'password': password}) as Map<String, dynamic>;
-      await ref.read(tokenStorageProvider).write(data['access_token'] as String);
-      return AuthUser.fromJson(await ref.read(apiClientProvider).get('/auth/me') as Map<String, dynamic>);
+      await ref
+          .read(apiClientProvider)
+          .post(
+            '/auth/register',
+            data: {'username': name, 'email': email, 'password': password},
+          );
+      final data =
+          await ref
+                  .read(apiClientProvider)
+                  .post(
+                    '/auth/login',
+                    data: {'email': email, 'password': password},
+                  )
+              as Map<String, dynamic>;
+      await ref
+          .read(tokenStorageProvider)
+          .write(data['access_token'] as String);
+      return AuthUser.fromJson(
+        await ref.read(apiClientProvider).get('/auth/me')
+            as Map<String, dynamic>,
+      );
     });
+    ref.invalidate(cartProvider);
   }
 
   Future<void> logout() async {
     await ref.read(tokenStorageProvider).clear();
     state = const AsyncData(null);
+    ref.invalidate(cartProvider);
   }
 }
 
-final authProvider = AsyncNotifierProvider<AuthController, AuthUser?>(AuthController.new);
+final authProvider = AsyncNotifierProvider<AuthController, AuthUser?>(
+  AuthController.new,
+);

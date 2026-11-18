@@ -2,8 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/side_b_theme.dart';
+import '../../../core/widgets/user_avatar.dart';
+
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+
+import 'profile_settings_screen.dart';
+import 'address_book_screen.dart';
 import '../../auth/auth.dart';
 import '../../creation/presentation/creation_hub_screen.dart';
+import '../../checkout/presentation/order_screens.dart';
+import '../../content/presentation/cart_screen.dart';
+import '../../library/presentation/saved_posts_screen.dart';
+import '../../wishlist/wishlist.dart';
+import '../../creation/presentation/editorial_management_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -22,7 +33,16 @@ class ProfileScreen extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 112),
               child: user == null
-                  ? const _VisitorProfile()
+                  ? LayoutBuilder(
+                      builder: (context, constraints) => SingleChildScrollView(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: constraints.maxHeight,
+                          ),
+                          child: const _VisitorProfile(),
+                        ),
+                      ),
+                    )
                   : _MemberProfile(user: user),
             ),
           ),
@@ -86,36 +106,129 @@ class _MemberProfile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) => ListView(
     children: [
-      CircleAvatar(
-        radius: 30,
-        backgroundColor: SideBColors.olive,
-        child: Text(
-          user.name.substring(0, 1).toUpperCase(),
-          style: const TextStyle(color: SideBColors.ivory, fontSize: 26),
-        ),
+      Text(
+        'TU ESPACIO / SIDE B',
+        style: Theme.of(context).textTheme.labelMedium
+            ?.copyWith(color: SideBColors.accent),
       ),
-      const SizedBox(height: 14),
-      Text(user.name, style: Theme.of(context).textTheme.displaySmall),
-      Text(user.email, style: Theme.of(context).textTheme.bodyMedium),
       const SizedBox(height: 24),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          UserAvatar(name: user.name, url: user.avatarUrl, radius: 36),
+          const SizedBox(width: 18),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user.name,
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 6),
+                Text(user.email, style: Theme.of(context).textTheme.bodyMedium),
+                const SizedBox(height: 10),
+                Text(
+                  user.role.toUpperCase(),
+                  style: Theme.of(context).textTheme.labelMedium
+                      ?.copyWith(color: SideBColors.olive),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      if (user.biography.isNotEmpty) ...[
+        const SizedBox(height: 20),
+        Text(user.biography, style: Theme.of(context).textTheme.bodyLarge),
+      ],
+      const SizedBox(height: 28),
       if (user.canPublish)
         FilledButton(
           style: FilledButton.styleFrom(backgroundColor: SideBColors.accent),
-          onPressed: () => Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const CreationHubScreen())),
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) =>
+                  const Scaffold(body: SafeArea(child: CreationHubScreen())),
+            ),
+          ),
           child: const Text('CREAR PUBLICACIÓN'),
         ),
       ...[
+        if (user.canPublish) 'Mis publicaciones',
         'Mis pedidos',
         'Lista de deseos',
         'Publicaciones guardadas',
         'Mi carrito',
+        'Mis direcciones',
         'Configuración de cuenta',
       ].map(
         (item) => ListTile(
-          title: Text(item),
-          trailing: const Icon(Icons.chevron_right),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
+          shape: Border(
+            bottom: BorderSide(color: SideBColors.border.withValues(alpha: .1)),
+          ),
+          leading: Icon(
+            switch (item) {
+              'Mis publicaciones' => LucideIcons.newspaper,
+              'Mis pedidos' => LucideIcons.package,
+              'Lista de deseos' => LucideIcons.heart,
+              'Publicaciones guardadas' => LucideIcons.bookmark,
+              'Mi carrito' => LucideIcons.shoppingBag,
+              'Mis direcciones' => LucideIcons.mapPin,
+              _ => LucideIcons.settings2,
+            },
+            size: 20,
+            color: SideBColors.olive,
+          ),
+          title: Text(item, style: Theme.of(context).textTheme.bodyLarge),
+          trailing: const Icon(
+            LucideIcons.chevronRight,
+            size: 16,
+            color: SideBColors.muted,
+          ),
+          onTap: item == 'Mis pedidos'
+              ? () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const OrdersScreen()),
+                )
+              : item == 'Mi carrito'
+              ? () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const CartScreen()),
+                )
+              : item == 'Mis direcciones'
+              ? () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const AddressBookScreen(),
+                  ),
+                )
+              : item == 'Configuración de cuenta'
+              ? () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => ProfileSettingsScreen(user: user),
+                  ),
+                )
+              : item == 'Lista de deseos'
+              ? () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const WishlistScreen(),
+                  ),
+                )
+              : item == 'Publicaciones guardadas'
+              ? () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const SavedPostsScreen(),
+                  ),
+                )
+              : item == 'Mis publicaciones'
+              ? () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const EditorialManagementScreen(),
+                  ),
+                )
+              : null,
         ),
       ),
       const SizedBox(height: 16),
