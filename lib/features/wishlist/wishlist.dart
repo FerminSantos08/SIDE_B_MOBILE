@@ -178,71 +178,88 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                             await ref.read(wishlistProvider.future);
                           },
                           child: ListView.separated(
-                            padding: const EdgeInsets.all(20),
+                            padding: const EdgeInsets.fromLTRB(20, 20, 20, 52),
                             itemCount: list.products.length,
                             separatorBuilder: (_, _) =>
-                                const Divider(height: 28),
+                                const SizedBox(height: 12),
                             itemBuilder: (context, index) {
                               final product = list.products[index];
-                              return Column(
-                                children: [
-                                  ListTile(
-                                    contentPadding: EdgeInsets.zero,
-                                    leading: SizedBox(
-                                      width: 72,
-                                      height: 72,
-                                      child: NetworkCover(
-                                        url: product.image,
-                                        aspectRatio: 1,
-                                      ),
-                                    ),
-                                    title: Text(product.name),
-                                    subtitle: Text(
-                                      '\$${product.price.toStringAsFixed(2)} MXN',
-                                    ),
-                                    onTap: () => Navigator.of(context).push(
-                                      MaterialPageRoute<void>(
-                                        builder: (_) => ProductDetailScreen(
-                                          productId: product.id,
+                              return Card(
+                                clipBehavior: Clip.antiAlias,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(14),
+                                  child: Column(
+                                    children: [
+                                      ListTile(
+                                        contentPadding: EdgeInsets.zero,
+                                        leading: SizedBox(
+                                          width: 72,
+                                          height: 72,
+                                          child: NetworkCover(
+                                            url: product.image,
+                                            aspectRatio: 1,
+                                            fit: BoxFit.contain,
+                                            backgroundColor: Theme.of(context)
+                                                .scaffoldBackgroundColor,
+                                          ),
+                                        ),
+                                        title: Text(
+                                          product.name,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleLarge,
+                                        ),
+                                        subtitle: Text(
+                                          [
+                                            product.category,
+                                            '\$${product.price.toStringAsFixed(2)} MXN',
+                                          ].whereType<String>().join(' · '),
+                                        ),
+                                        onTap: () => Navigator.of(context).push(
+                                          MaterialPageRoute<void>(
+                                            builder: (_) => ProductDetailScreen(
+                                              productId: product.id,
+                                            ),
+                                          ),
+                                        ),
+                                        trailing: IconButton(
+                                          tooltip: 'Quitar ${product.name}',
+                                          onPressed: _busy.contains(product.id)
+                                              ? null
+                                              : () => _run(
+                                                  product.id,
+                                                  () => ref
+                                                      .read(
+                                                        contentRepositoryProvider,
+                                                      )
+                                                      .removeFromWishlist(
+                                                        product.id,
+                                                      ),
+                                                ),
+                                          icon: const Icon(Icons.favorite),
                                         ),
                                       ),
-                                    ),
-                                    trailing: IconButton(
-                                      tooltip: 'Quitar ${product.name}',
-                                      onPressed: _busy.contains(product.id)
-                                          ? null
-                                          : () => _run(
-                                              product.id,
-                                              () => ref
-                                                  .read(
-                                                    contentRepositoryProvider,
-                                                  )
-                                                  .removeFromWishlist(
-                                                    product.id,
-                                                  ),
-                                            ),
-                                      icon: const Icon(Icons.favorite),
-                                    ),
-                                  ),
-                                  Align(
-                                    alignment: Alignment.centerRight,
-                                    child: OutlinedButton.icon(
-                                      onPressed:
-                                          _busy.contains(product.id) ||
-                                              (product.stock ?? 0) <= 0
-                                          ? null
-                                          : () => _cart(product),
-                                      icon: const Icon(
-                                        Icons.shopping_bag_outlined,
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: OutlinedButton.icon(
+                                          onPressed:
+                                              _busy.contains(product.id) ||
+                                                  (product.stock ?? 0) <= 0
+                                              ? null
+                                              : () => _cart(product),
+                                          icon: const Icon(
+                                            Icons.shopping_cart_outlined,
+                                          ),
+                                          label: Text(
+                                            (product.stock ?? 0) <= 0
+                                                ? 'AGOTADO'
+                                                : 'AGREGAR AL CARRITO',
+                                          ),
+                                        ),
                                       ),
-                                      label: Text(
-                                        (product.stock ?? 0) <= 0
-                                            ? 'AGOTADO'
-                                            : 'AGREGAR AL CARRITO',
-                                      ),
-                                    ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               );
                             },
                           ),

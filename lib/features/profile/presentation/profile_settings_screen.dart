@@ -131,79 +131,112 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 580),
           child: ListView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 52),
             children: [
-              Center(
-                child: UserAvatar(
-                  name: user.name,
-                  url: user.avatarUrl,
-                  radius: 44,
-                ),
-              ),
-              TextButton.icon(
-                onPressed: _busy ? null : _photo,
-                icon: const Icon(Icons.add_a_photo_outlined),
-                label: const Text('ACTUALIZAR FOTO'),
-              ),
-              const Text(
-                'JPG, PNG o WebP · Hasta 5 MB',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              Text(user.email, style: Theme.of(context).textTheme.bodyMedium),
-              if (user.username.isNotEmpty) Text('@${user.username}'),
-              const SizedBox(height: 20),
-              Form(
-                key: _form,
-                child: Column(
-                  children: [
-                    TextFormField(
-                      controller: _alias,
-                      enabled: !_busy,
-                      maxLength: 50,
-                      decoration: const InputDecoration(labelText: 'Alias'),
-                      validator: (value) => (value ?? '').trim().isEmpty
-                          ? 'Escribe tu alias.'
-                          : null,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _bio,
-                      enabled: !_busy,
-                      minLines: 3,
-                      maxLines: 5,
-                      maxLength: 300,
-                      decoration: const InputDecoration(
-                        labelText: 'Biografía',
-                        alignLabelWithHint: true,
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Center(
+                        child: UserAvatar(
+                          name: user.name,
+                          url: user.avatarUrl,
+                          radius: 44,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    FilledButton(
-                      onPressed: _busy ? null : _save,
-                      child: Text(_busy ? 'GUARDANDO…' : 'GUARDAR PERFIL'),
-                    ),
-                  ],
-                ),
-              ),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Text(
-                    _error!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+                      TextButton.icon(
+                        onPressed: _busy ? null : _photo,
+                        icon: const Icon(Icons.add_a_photo_outlined),
+                        label: const Text('ACTUALIZAR FOTO'),
+                      ),
+                      const Text(
+                        'JPG, PNG o WebP · Hasta 5 MB',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        user.email,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      if (user.username.isNotEmpty) Text('@${user.username}'),
+                    ],
                   ),
                 ),
-              if (_success != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Text(_success!),
+              ),
+              const SizedBox(height: 20),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Datos personales',
+                        style: Theme.of(context).textTheme.headlineMedium,
+                      ),
+                      const SizedBox(height: 16),
+                      Form(
+                        key: _form,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextFormField(
+                              controller: _alias,
+                              enabled: !_busy,
+                              maxLength: 50,
+                              decoration: const InputDecoration(
+                                labelText: 'Alias',
+                              ),
+                              validator: (value) => (value ?? '').trim().isEmpty
+                                  ? 'Escribe tu alias.'
+                                  : null,
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: _bio,
+                              enabled: !_busy,
+                              minLines: 3,
+                              maxLines: 5,
+                              maxLength: 300,
+                              decoration: const InputDecoration(
+                                labelText: 'Biografía',
+                                alignLabelWithHint: true,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            FilledButton(
+                              onPressed: _busy ? null : _save,
+                              child: Text(
+                                _busy ? 'GUARDANDO…' : 'GUARDAR PERFIL',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (_error != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Text(
+                            _error!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ),
+                      if (_success != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Text(_success!),
+                        ),
+                    ],
+                  ),
                 ),
+              ),
               const Divider(height: 36),
               ListTile(
                 contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.location_on_outlined),
                 title: const Text('Mis direcciones'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: _busy
@@ -216,6 +249,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.lock_outline),
                 title: const Text('Cambiar contraseña'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: _busy
@@ -294,55 +328,63 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
         child: ListView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 52),
           children: [
             const Text(
               'Confirma tu contraseña actual. Al cambiarla tendrás que iniciar sesión de nuevo en la app.',
             ),
             const SizedBox(height: 24),
-            Form(
-              key: _form,
-              child: Column(
-                children: [
-                  _field(
-                    _current,
-                    'Contraseña actual',
-                    (value) => (value ?? '').isEmpty
-                        ? 'Escribe tu contraseña actual.'
-                        : null,
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Form(
+                  key: _form,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _field(
+                        _current,
+                        'Contraseña actual',
+                        (value) => (value ?? '').isEmpty
+                            ? 'Escribe tu contraseña actual.'
+                            : null,
+                      ),
+                      const SizedBox(height: 12),
+                      _field(_next, 'Nueva contraseña', (value) {
+                        if ((value ?? '').runes.length < 8)
+                          return 'Usa al menos 8 caracteres.';
+                        if (utf8.encode(value!).length > 72)
+                          return 'La contraseña es demasiado larga.';
+                        if (value == _current.text)
+                          return 'Elige una contraseña diferente.';
+                        return null;
+                      }),
+                      const SizedBox(height: 12),
+                      _field(
+                        _confirmation,
+                        'Confirmar nueva contraseña',
+                        (value) => value != _next.text
+                            ? 'Las contraseñas no coinciden.'
+                            : null,
+                      ),
+                      CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        value: _visible,
+                        onChanged: _busy
+                            ? null
+                            : (value) => setState(() => _visible = value!),
+                        title: const Text('Mostrar contraseñas'),
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: _busy ? null : _save,
+                        child: Text(
+                          _busy ? 'ACTUALIZANDO…' : 'CAMBIAR CONTRASEÑA',
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  _field(_next, 'Nueva contraseña', (value) {
-                    if ((value ?? '').runes.length < 8)
-                      return 'Usa al menos 8 caracteres.';
-                    if (utf8.encode(value!).length > 72)
-                      return 'La contraseña es demasiado larga.';
-                    if (value == _current.text)
-                      return 'Elige una contraseña diferente.';
-                    return null;
-                  }),
-                  const SizedBox(height: 12),
-                  _field(
-                    _confirmation,
-                    'Confirmar nueva contraseña',
-                    (value) => value != _next.text
-                        ? 'Las contraseñas no coinciden.'
-                        : null,
-                  ),
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    value: _visible,
-                    onChanged: _busy
-                        ? null
-                        : (value) => setState(() => _visible = value!),
-                    title: const Text('Mostrar contraseñas'),
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: _busy ? null : _save,
-                    child: Text(_busy ? 'ACTUALIZANDO…' : 'CAMBIAR CONTRASEÑA'),
-                  ),
-                ],
+                ),
               ),
             ),
             if (_error != null)

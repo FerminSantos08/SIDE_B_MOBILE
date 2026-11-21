@@ -80,7 +80,7 @@ class SkeletonBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
-      color: SideBColors.skeleton,
+      color: Theme.of(context).colorScheme.surfaceContainerHigh,
       borderRadius: BorderRadius.circular(radius),
     ),
     child: SizedBox(width: width, height: height),

@@ -58,7 +58,6 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
           builder: (context, constraints) {
             final width = constraints.maxWidth;
             final padding = SideBLayout.horizontalPadding(width);
-            final imageHeight = SideBLayout.featuredPostHeight(width);
             return state.when(
               loading: () => _DetailSkeleton(width: width),
               error: (_, __) => AsyncErrorView(
@@ -69,7 +68,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                 slivers: [
                   SliverAppBar(
                     pinned: true,
-                    backgroundColor: SideBColors.ivory,
+                    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                     leading: IconButton(
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(LucideIcons.arrowLeft),
@@ -86,21 +85,19 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                             padding,
                             20,
                             padding,
-                            32,
+                            52,
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              NetworkCover(
-                                url: post.image,
-                                aspectRatio: 1.2,
-                                height: imageHeight,
-                              ),
-                              const SizedBox(height: 24),
                               Text(
                                 (post.author ?? 'Editorial').toUpperCase(),
                                 style: Theme.of(context).textTheme.labelMedium
-                                    ?.copyWith(color: SideBColors.accent),
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .secondary,
+                                    ),
                               ),
                               const SizedBox(height: 9),
                               Text(
@@ -120,16 +117,41 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                                 Text(
                                   post.authorRole!,
                                   style: Theme.of(context).textTheme.labelMedium
-                                      ?.copyWith(color: SideBColors.accent),
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .secondary,
+                                      ),
                                 ),
                               ],
                               if (post.status != null) ...[
                                 const SizedBox(height: 12),
                                 _StatusLabel(status: post.status!),
                               ],
+                              if (post.content?.trim().isNotEmpty == true &&
+                                  post.description.trim().isNotEmpty &&
+                                  post.description.trim() !=
+                                      post.content?.trim()) ...[
+                                const SizedBox(height: 16),
+                                Text(
+                                  post.description,
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ],
+                              if (post.image != null) ...[
+                                const SizedBox(height: 24),
+                                NetworkCover(
+                                  url: post.image,
+                                  aspectRatio: 16 / 10,
+                                ),
+                              ],
+                              const SizedBox(height: 24),
+                              const Divider(),
                               const SizedBox(height: 28),
                               HtmlArticleBody(
-                                html: post.content ?? post.description,
+                                html: post.content?.trim().isNotEmpty == true
+                                    ? post.content!
+                                    : post.description,
                               ),
                               if (post.tags.isNotEmpty) ...[
                                 const SizedBox(height: 30),
@@ -234,7 +256,9 @@ class _TagList extends StatelessWidget {
           (tag) => Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              border: Border.all(color: SideBColors.border),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(tag, style: Theme.of(context).textTheme.labelMedium),

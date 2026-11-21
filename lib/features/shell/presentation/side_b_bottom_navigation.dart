@@ -18,8 +18,10 @@ class SideBBottomNavigation extends StatelessWidget {
 
   static const maxWidth = 380.0;
   static const height = 64.0;
+  static const bottomMargin = 16.0;
+  static const bottomFootprint = height + bottomMargin;
   static const _horizontalScreenMargin = 16.0;
-  static const _animationDuration = Duration(milliseconds: 280);
+  static const animationDuration = Duration(milliseconds: 280);
   static const _animationCurve = Curves.easeInOutCubic;
   static const _minimumInactiveItemWidth = 48.0;
   static const _verticalInset = 6.0;
@@ -62,7 +64,7 @@ class SideBBottomNavigation extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.only(bottom: bottomMargin),
         child: Align(
           alignment: Alignment.center,
           // Scaffold positions bottomNavigationBar at the bottom. Shrinking
@@ -95,7 +97,8 @@ class SideBBottomNavigation extends StatelessWidget {
                     clipBehavior: Clip.none,
                     children: [
                       AnimatedPositioned(
-                        duration: _animationDuration,
+                        key: const ValueKey('side-b-nav-indicator'),
+                        duration: animationDuration,
                         curve: _animationCurve,
                         left: indicatorLeft + _indicatorHorizontalInset,
                         top: _verticalInset,
@@ -105,7 +108,7 @@ class SideBBottomNavigation extends StatelessWidget {
                           child: DecoratedBox(
                             decoration: BoxDecoration(
                               color: destinations[selectedIndex].isCreation
-                                  ? SideBColors.accent
+                                  ? SideBColors.terracotta
                                   : SideBColors.olive,
                               borderRadius: BorderRadius.circular(height / 2),
                             ),
@@ -115,7 +118,7 @@ class SideBBottomNavigation extends StatelessWidget {
                       ...List.generate(destinations.length, (index) {
                         final selected = index == selectedIndex;
                         return AnimatedPositioned(
-                          duration: _animationDuration,
+                          duration: animationDuration,
                           curve: _animationCurve,
                           left: _itemLeft(
                             index,
@@ -210,24 +213,26 @@ class _NavigationItem extends StatelessWidget {
                   Icon(
                     destination.icon,
                     color: destination.isCreation && !selected
-                        ? SideBColors.accent
+                        ? SideBColors.terracotta
                         : SideBColors.ivory,
                     size: 20,
                   ),
-                  AnimatedSize(
-                    duration: SideBBottomNavigation._animationDuration,
-                    curve: SideBBottomNavigation._animationCurve,
-                    child: selected
-                        ? Padding(
-                            padding: const EdgeInsets.only(left: 7),
-                            child: Text(
-                              destination.label,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: textStyle,
-                            ),
-                          )
-                        : const SizedBox.shrink(),
+                  Flexible(
+                    child: AnimatedSize(
+                      duration: SideBBottomNavigation.animationDuration,
+                      curve: SideBBottomNavigation._animationCurve,
+                      child: selected
+                          ? Padding(
+                              padding: const EdgeInsets.only(left: 7),
+                              child: Text(
+                                destination.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: textStyle,
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
                   ),
                 ],
               ),

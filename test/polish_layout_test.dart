@@ -8,6 +8,7 @@ import 'package:side_b/features/auth/auth.dart';
 import 'package:side_b/features/content/data/content_models.dart';
 import 'package:side_b/features/content/data/reactions_repository.dart';
 import 'package:side_b/features/content/presentation/content_providers.dart';
+import 'package:side_b/features/content/presentation/artist_screens.dart';
 import 'package:side_b/features/content/presentation/reaction_providers.dart';
 import 'package:side_b/features/content/presentation/shop_screen.dart';
 import 'package:side_b/features/profile/presentation/profile_screen.dart';
@@ -59,6 +60,113 @@ void main() {
       expect(t.takeException(), isNull);
     }
   });
+  testWidgets('artist discography fits a narrow dark layout with large text', (
+    t,
+  ) async {
+    await t.binding.setSurfaceSize(const Size(320, 780));
+    addTearDown(() => t.binding.setSurfaceSize(null));
+    await t.pumpWidget(
+      ProviderScope(
+        overrides: [
+          artistProvider.overrideWith(
+            (ref, id) => const Artist(
+              id: 1,
+              name: 'Un artista con un nombre largo',
+              genre: 'Indie rock',
+              bio: 'Una biografía de prueba.',
+              albums: [
+                Album(
+                  id: 1,
+                  title: 'Un disco con un título largo',
+                  releaseDate: '2025-02-10',
+                ),
+                Album(id: 2, title: 'Segundo disco'),
+              ],
+            ),
+          ),
+        ],
+        child: MaterialApp(
+          theme: SideBTheme.dark,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: const TextScaler.linear(1.6)),
+            child: child!,
+          ),
+          home: const ArtistProfileScreen(artistId: 1),
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    await t.scrollUntilVisible(find.text('Biografía'), 180);
+    await t.scrollUntilVisible(find.text('ÁLBUM · 2025'), 180);
+    expect(find.text('Discografía'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('shop filters categories and opens a complete product card', (
+    t,
+  ) async {
+    await t.binding.setSurfaceSize(const Size(360, 800));
+    addTearDown(() => t.binding.setSurfaceSize(null));
+    const headphones = Product(
+      id: 1,
+      name: 'Audífonos',
+      category: 'Audio',
+      price: 499.50,
+      stock: 1,
+      description: 'Descripción de prueba.',
+    );
+    const cable = Product(
+      id: 3,
+      name: 'Cable de audio',
+      category: 'Audio',
+      price: 149,
+    );
+    await t.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authProvider.overrideWith(Guest.new),
+          productsProvider.overrideWith(
+            (ref) => const [
+              headphones,
+              cable,
+              Product(
+                id: 2,
+                name: 'Disco de prueba',
+                category: 'Vinilos',
+                price: 300,
+              ),
+            ],
+          ),
+          productProvider.overrideWith(
+            (ref, id) => id == cable.id ? cable : headphones,
+          ),
+        ],
+        child: MaterialApp(
+          theme: SideBTheme.dark,
+          home: const Scaffold(body: ShopScreen()),
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    await t.tap(find.widgetWithText(ChoiceChip, 'Audio'));
+    await t.pumpAndSettle();
+    expect(find.text('Disco de prueba'), findsNothing);
+    await t.scrollUntilVisible(find.text('Audífonos'), 160);
+    await t.tap(find.text('Audífonos'));
+    await t.pumpAndSettle();
+    expect(find.text('1 disponible'), findsOneWidget);
+    expect(find.text('Agregar al carrito'), findsOneWidget);
+    expect(find.byTooltip('Mi carrito'), findsOneWidget);
+    await t.scrollUntilVisible(find.text('Cable de audio'), 180);
+    expect(find.text('Productos relacionados'), findsOneWidget);
+    expect(find.text('Disco de prueba'), findsNothing);
+    await t.tap(find.text('Cable de audio'));
+    await t.pumpAndSettle();
+    expect(find.text('Cable de audio'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
   testWidgets('empty and error states fit a short viewport', (t) async {
     for (final child in [
       const EmptyView(message: 'Tu colección está vacía.'),

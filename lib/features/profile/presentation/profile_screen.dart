@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/side_b_theme.dart';
+import '../../../core/theme/theme_mode_provider.dart';
 import '../../../core/widgets/user_avatar.dart';
 
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -27,22 +28,14 @@ class ProfileScreen extends ConsumerWidget {
       error: (_, __) =>
           _RecoveryError(onRetry: () => ref.invalidate(authProvider)),
       data: (user) => SafeArea(
-        child: Center(
+        child: Align(
+          alignment: Alignment.topCenter,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 112),
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 52),
               child: user == null
-                  ? LayoutBuilder(
-                      builder: (context, constraints) => SingleChildScrollView(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minHeight: constraints.maxHeight,
-                          ),
-                          child: const _VisitorProfile(),
-                        ),
-                      ),
-                    )
+                  ? const SingleChildScrollView(child: _VisitorProfile())
                   : _MemberProfile(user: user),
             ),
           ),
@@ -74,30 +67,77 @@ class _VisitorProfile extends StatelessWidget {
   const _VisitorProfile();
   @override
   Widget build(BuildContext context) => Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    crossAxisAlignment: CrossAxisAlignment.start,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text('Tu perfil.', style: Theme.of(context).textTheme.displaySmall),
-      const SizedBox(height: 12),
-      Text(
-        'Guarda hallazgos, administra compras y participa en SIDE B.',
-        style: Theme.of(context).textTheme.bodyLarge,
-      ),
+      const _AccountHeading(section: 'Mi cuenta', title: 'Tu perfil.'),
       const SizedBox(height: 24),
-      FilledButton(
-        style: FilledButton.styleFrom(backgroundColor: SideBColors.accent),
-        onPressed: () => _open(context, false),
-        child: const Text('INICIAR SESIÓN'),
-      ),
-      const SizedBox(height: 10),
-      OutlinedButton(
-        onPressed: () => _open(context, true),
-        child: const Text('CREAR CUENTA'),
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: CircleAvatar(
+                  backgroundColor: SideBColors.graphite,
+                  foregroundColor: SideBColors.paper,
+                  child: Icon(LucideIcons.userRound, size: 20),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Tu espacio en SIDE B',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Entra a tu cuenta para ver tus publicaciones guardadas y tus pedidos.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 20),
+              FilledButton(
+                onPressed: () => _open(context, false),
+                child: const Text('INICIAR SESIÓN'),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton(
+                onPressed: () => _open(context, true),
+                child: const Text('CREAR CUENTA'),
+              ),
+            ],
+          ),
+        ),
       ),
     ],
   );
   void _open(BuildContext context, bool register) => Navigator.of(context)
       .push(MaterialPageRoute(builder: (_) => AuthScreen(register: register)));
+}
+
+class _AccountHeading extends StatelessWidget {
+  const _AccountHeading({required this.section, required this.title});
+
+  final String section;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          section.toUpperCase(),
+          style: text.labelMedium?.copyWith(
+            color: Theme.of(context).colorScheme.secondary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(title, style: text.displaySmall),
+      ],
+    );
+  }
 }
 
 class _MemberProfile extends ConsumerWidget {
@@ -106,46 +146,71 @@ class _MemberProfile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) => ListView(
     children: [
-      Text(
-        'TU ESPACIO / SIDE B',
-        style: Theme.of(context).textTheme.labelMedium
-            ?.copyWith(color: SideBColors.accent),
-      ),
-      const SizedBox(height: 24),
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          UserAvatar(name: user.name, url: user.avatarUrl, radius: 36),
-          const SizedBox(width: 18),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'TU ESPACIO / SIDE B',
+                style: Theme.of(context).textTheme.labelMedium
+                    ?.copyWith(color: Theme.of(context).colorScheme.secondary),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  UserAvatar(name: user.name, url: user.avatarUrl, radius: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user.name,
+                          style: Theme.of(context).textTheme.headlineMedium,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          user.email,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          user.role.toUpperCase(),
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(color: SideBColors.olive),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton.outlined(
+                    tooltip: ref.watch(darkThemeProvider)
+                        ? 'Activar tema claro'
+                        : 'Activar tema oscuro',
+                    onPressed: ref.read(darkThemeProvider.notifier).toggle,
+                    icon: Icon(
+                      ref.watch(darkThemeProvider)
+                          ? Icons.light_mode_outlined
+                          : Icons.dark_mode_outlined,
+                    ),
+                  ),
+                ],
+              ),
+              if (user.biography.isNotEmpty) ...[
+                const SizedBox(height: 20),
                 Text(
-                  user.name,
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 6),
-                Text(user.email, style: Theme.of(context).textTheme.bodyMedium),
-                const SizedBox(height: 10),
-                Text(
-                  user.role.toUpperCase(),
-                  style: Theme.of(context).textTheme.labelMedium
-                      ?.copyWith(color: SideBColors.olive),
+                  user.biography,
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
               ],
-            ),
+            ],
           ),
-        ],
+        ),
       ),
-      if (user.biography.isNotEmpty) ...[
-        const SizedBox(height: 20),
-        Text(user.biography, style: Theme.of(context).textTheme.bodyLarge),
-      ],
       const SizedBox(height: 28),
       if (user.canPublish)
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: SideBColors.accent),
           onPressed: () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) =>
@@ -169,7 +234,9 @@ class _MemberProfile extends ConsumerWidget {
             vertical: 8,
           ),
           shape: Border(
-            bottom: BorderSide(color: SideBColors.border.withValues(alpha: .1)),
+            bottom: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
           ),
           leading: Icon(
             switch (item) {
@@ -177,7 +244,7 @@ class _MemberProfile extends ConsumerWidget {
               'Mis pedidos' => LucideIcons.package,
               'Lista de deseos' => LucideIcons.heart,
               'Publicaciones guardadas' => LucideIcons.bookmark,
-              'Mi carrito' => LucideIcons.shoppingBag,
+              'Mi carrito' => LucideIcons.shoppingCart,
               'Mis direcciones' => LucideIcons.mapPin,
               _ => LucideIcons.settings2,
             },
@@ -185,10 +252,10 @@ class _MemberProfile extends ConsumerWidget {
             color: SideBColors.olive,
           ),
           title: Text(item, style: Theme.of(context).textTheme.bodyLarge),
-          trailing: const Icon(
+          trailing: Icon(
             LucideIcons.chevronRight,
             size: 16,
-            color: SideBColors.muted,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           onTap: item == 'Mis pedidos'
               ? () => Navigator.of(context).push(
@@ -254,6 +321,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _password = TextEditingController();
   final _confirmation = TextEditingController();
   var _showPassword = false;
+  late bool _register = widget.register;
+
+  void _switchMode() {
+    setState(() {
+      _register = !_register;
+      _showPassword = false;
+      _password.clear();
+      _confirmation.clear();
+    });
+  }
+
   @override
   void dispose() {
     _name.dispose();
@@ -269,7 +347,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     final error = state.hasError ? state.error.toString() : null;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: SideBColors.ivory,
+        title: const Text('SIDE B'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
@@ -282,99 +360,100 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 440),
               child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Form(
-                  key: _form,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Center(
-                        child: Image.asset(
-                          'lib/favicons/sideb.png',
-                          width: 124,
-                          height: 124,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        widget.register
-                            ? 'Crea tu espacio para guardar, comprar y participar en SIDE B.'
-                            : 'Inicia sesión para recuperar tus guardados, compras y colección personal.',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        widget.register ? 'Crear cuenta.' : 'Iniciar sesión.',
-                        style: Theme.of(context).textTheme.displaySmall,
-                      ),
-                      const SizedBox(height: 24),
-                      if (widget.register) ...[
-                        _field(
-                          _name,
-                          'Nombre',
-                          (v) => v == null || v.trim().length < 3
-                              ? 'Mínimo 3 caracteres.'
-                              : null,
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                      _field(
-                        _email,
-                        'Correo',
-                        (v) => v == null || !v.contains('@')
-                            ? 'Correo inválido.'
-                            : null,
-                        email: true,
-                      ),
-                      const SizedBox(height: 12),
-                      _field(
-                        _password,
-                        'Contraseña',
-                        (v) => v == null || v.length < 8
-                            ? 'Mínimo 8 caracteres.'
-                            : null,
-                        password: true,
-                      ),
-                      if (widget.register) ...[
-                        const SizedBox(height: 12),
-                        _field(
-                          _confirmation,
-                          'Confirmar contraseña',
-                          (v) => v != _password.text
-                              ? 'Las contraseñas no coinciden.'
-                              : null,
-                          password: true,
-                        ),
-                      ],
-                      const SizedBox(height: 22),
-                      FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: SideBColors.accent,
-                        ),
-                        onPressed: state.isLoading ? null : _submit,
-                        child: Text(
-                          state.isLoading
-                              ? 'CARGANDO...'
-                              : widget.register
-                              ? 'CREAR CUENTA'
-                              : 'INICIAR SESIÓN',
-                        ),
-                      ),
-                      if (error != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Text(
-                            error,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 52),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _AccountHeading(
+                      section: 'Mi cuenta',
+                      title: _register ? 'Crear cuenta.' : 'Iniciar sesión.',
+                    ),
+                    const SizedBox(height: 20),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(18),
+                        child: AutofillGroup(
+                          child: Form(
+                            key: _form,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                if (_register) ...[
+                                  _field(
+                                    _name,
+                                    'Nombre',
+                                    (v) => v == null || v.trim().length < 3
+                                        ? 'Mínimo 3 caracteres.'
+                                        : null,
+                                  ),
+                                  const SizedBox(height: 12),
+                                ],
+                                _field(
+                                  _email,
+                                  'Correo',
+                                  (v) => v == null || !v.contains('@')
+                                      ? 'Correo inválido.'
+                                      : null,
+                                  email: true,
+                                ),
+                                const SizedBox(height: 12),
+                                _field(
+                                  _password,
+                                  'Contraseña',
+                                  (v) => v == null || v.length < 8
+                                      ? 'Mínimo 8 caracteres.'
+                                      : null,
+                                  password: true,
+                                ),
+                                if (_register) ...[
+                                  const SizedBox(height: 12),
+                                  _field(
+                                    _confirmation,
+                                    'Confirmar contraseña',
+                                    (v) => v != _password.text
+                                        ? 'Las contraseñas no coinciden.'
+                                        : null,
+                                    password: true,
+                                  ),
+                                ],
+                                const SizedBox(height: 22),
+                                FilledButton(
+                                  onPressed: state.isLoading ? null : _submit,
+                                  child: Text(
+                                    state.isLoading
+                                        ? 'CARGANDO...'
+                                        : _register
+                                        ? 'CREAR CUENTA'
+                                        : 'INICIAR SESIÓN',
+                                  ),
+                                ),
+                                if (error != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 12),
+                                    child: Text(
+                                      error,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .error,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         ),
-                    ],
-                  ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: state.isLoading ? null : _switchMode,
+                      child: Text(
+                        _register ? 'Ya tengo cuenta' : 'Crear una cuenta',
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -391,8 +470,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     bool email = false,
     bool password = false,
   }) => TextFormField(
+    key: ValueKey(label),
     controller: controller,
     obscureText: password && !_showPassword,
+    autofillHints: [
+      if (email)
+        AutofillHints.email
+      else if (password)
+        _register ? AutofillHints.newPassword : AutofillHints.password
+      else
+        AutofillHints.name,
+    ],
     keyboardType: email ? TextInputType.emailAddress : TextInputType.text,
     decoration: InputDecoration(
       labelText: label,
@@ -403,6 +491,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     ? Icons.visibility_off_outlined
                     : Icons.visibility_outlined,
               ),
+              tooltip: _showPassword
+                  ? 'Ocultar contraseña'
+                  : 'Mostrar contraseña',
               onPressed: () => setState(() => _showPassword = !_showPassword),
             )
           : null,
@@ -412,7 +503,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
     final auth = ref.read(authProvider.notifier);
-    if (widget.register) {
+    if (_register) {
       await auth.register(
         _name.text.trim(),
         _email.text.trim(),

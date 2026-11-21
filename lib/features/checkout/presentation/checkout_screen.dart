@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
-import '../../../core/theme/side_b_theme.dart';
 import '../../../core/widgets/async_state.dart';
 import '../../content/presentation/content_providers.dart';
 import '../data/checkout_repository.dart';
@@ -278,7 +277,7 @@ class PurchaseSummary extends StatelessWidget {
       Text(
         'ENTREGA',
         style: Theme.of(context).textTheme.labelMedium
-            ?.copyWith(color: SideBColors.accent),
+            ?.copyWith(color: Theme.of(context).colorScheme.secondary),
       ),
       const SizedBox(height: 8),
       Text(quote.address),

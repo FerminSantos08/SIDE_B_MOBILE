@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/layout/side_b_layout.dart';
-import '../../../core/theme/side_b_theme.dart';
 import '../../../core/widgets/async_state.dart';
 import '../../../core/widgets/editorial_components.dart';
 import '../../../core/widgets/olive_shimmer.dart';
@@ -11,20 +10,30 @@ import 'cart_screen.dart';
 import 'content_providers.dart';
 import 'product_detail_screen.dart';
 
-class ShopScreen extends ConsumerWidget {
+class ShopScreen extends ConsumerStatefulWidget {
   const ShopScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ShopScreen> createState() => _ShopScreenState();
+}
+
+class _ShopScreenState extends ConsumerState<ShopScreen> {
+  String? _category;
+
+  @override
+  Widget build(BuildContext context) {
     final products = ref.watch(productsProvider);
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final padding = SideBLayout.horizontalPadding(width);
         final columns = width >= SideBLayout.expandedBreakpoint ? 3 : 2;
-        final tileWidth = (width - padding * 2 - 16 * (columns - 1)) / columns;
-        final textScale = MediaQuery.textScalerOf(context).scale(14) / 14;
-        final tileHeight = tileWidth + 132 * textScale.clamp(1.0, 2.0);
+        final padding = SideBLayout.horizontalPadding(width);
+        final gutter =
+            padding +
+            ((width - SideBLayout.maxContentWidth) / 2).clamp(
+              0.0,
+              double.infinity,
+            );
         return RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(productsProvider);
@@ -36,69 +45,125 @@ class ShopScreen extends ConsumerWidget {
               const SliverToBoxAdapter(
                 child: EditorialHeader(
                   eyebrow: 'Objetos y ediciones',
-                  title: 'La tienda\ndel otro lado.',
+                  title: 'La tienda',
+                  subtitle: 'del otro lado.',
+                  trailing: CartButton(),
                   description:
                       'Música y piezas seleccionadas para llevar contigo.',
                 ),
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.only(right: padding, bottom: 8),
-                  child: const Align(
-                    alignment: Alignment.centerRight,
-                    child: CartButton(),
+                  padding: EdgeInsets.fromLTRB(gutter, 0, gutter, 8),
+                  child: Text(
+                    'Catálogo',
+                    style: Theme.of(context).textTheme.headlineMedium,
                   ),
                 ),
               ),
               products.when(
-                loading: () => SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(padding, 0, padding, 112),
-                    child: OliveShimmer(
-                      child: GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: columns,
-                          mainAxisSpacing: 22,
-                          crossAxisSpacing: 16,
-                          mainAxisExtent: tileHeight,
-                        ),
-                        itemCount: columns * 2,
-                        itemBuilder: (_, __) => const _ProductSkeleton(),
-                      ),
-                    ),
+                loading: () => SliverPadding(
+                  padding: EdgeInsets.symmetric(horizontal: gutter),
+                  sliver: const SliverToBoxAdapter(
+                    child: OliveShimmer(child: _ProductSkeleton()),
                   ),
                 ),
-                error: (_, __) => SliverFillRemaining(
+                error: (_, _) => SliverFillRemaining(
+                  hasScrollBody: false,
                   child: AsyncErrorView(
                     message: 'No pudimos cargar la tienda.',
                     onRetry: () => ref.invalidate(productsProvider),
                   ),
                 ),
-                data: (items) => items.isEmpty
-                    ? const SliverFillRemaining(
-                        child: EmptyView(
-                          message: 'Aún no hay productos disponibles.',
-                        ),
-                      )
-                    : SliverPadding(
-                        padding: EdgeInsets.fromLTRB(padding, 0, padding, 112),
-                        sliver: SliverGrid(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) =>
-                                _ProductCard(product: items[index]),
-                            childCount: items.length,
-                          ),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: columns,
-                                mainAxisSpacing: 22,
-                                crossAxisSpacing: 16,
-                                mainAxisExtent: tileHeight,
-                              ),
-                        ),
+                data: (items) {
+                  if (items.isEmpty) {
+                    return const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: EmptyView(
+                        message: 'Aún no hay productos disponibles.',
                       ),
+                    );
+                  }
+                  final categories =
+                      items
+                          .map((item) => item.category)
+                          .whereType<String>()
+                          .where((category) => category.trim().isNotEmpty)
+                          .toSet()
+                          .toList()
+                        ..sort();
+                  final active = categories.contains(_category)
+                      ? _category
+                      : null;
+                  final visible = active == null
+                      ? items
+                      : items.where((item) => item.category == active).toList();
+                  return SliverPadding(
+                    padding: EdgeInsets.fromLTRB(gutter, 0, gutter, 52),
+                    sliver: SliverMainAxisGroup(
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (categories.length > 1)
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 6,
+                                    children: [
+                                      ChoiceChip(
+                                        label: const Text('Todos'),
+                                        selected: active == null,
+                                        onSelected: (_) =>
+                                            setState(() => _category = null),
+                                      ),
+                                      for (final category in categories)
+                                        ChoiceChip(
+                                          label: Text(category),
+                                          selected: active == category,
+                                          onSelected: (_) => setState(
+                                            () => _category = category,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SliverList.builder(
+                          itemCount: (visible.length / columns).ceil(),
+                          itemBuilder: (context, row) => Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                for (
+                                  var column = 0;
+                                  column < columns;
+                                  column++
+                                ) ...[
+                                  if (column > 0) const SizedBox(width: 12),
+                                  Expanded(
+                                    child:
+                                        row * columns + column < visible.length
+                                        ? ProductCard(
+                                            product:
+                                                visible[row * columns + column],
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -108,61 +173,79 @@ class ShopScreen extends ConsumerWidget {
   }
 }
 
-class _ProductCard extends StatelessWidget {
-  const _ProductCard({required this.product});
+class ProductCard extends StatelessWidget {
+  const ProductCard({super.key, required this.product});
   final Product product;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    label: '${product.name}, ${_price(product.price)}',
-    child: InkWell(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => ProductDetailScreen(productId: product.id),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: NetworkCover(
-              url: product.image,
-              aspectRatio: 1,
-              fit: BoxFit.contain,
+  Widget build(BuildContext context) {
+    final cover = NetworkCover(
+      url: product.image,
+      aspectRatio: 1,
+      fit: BoxFit.contain,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+    );
+    return Semantics(
+      label: '${product.name}, ${_price(product.price)}',
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => ProductDetailScreen(productId: product.id),
             ),
           ),
-          const SizedBox(height: 11),
-          Text(
-            (product.category ?? 'SIDE B').toUpperCase(),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelMedium
-                ?.copyWith(color: SideBColors.accent),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              cover,
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (product.category case final category?) ...[
+                      Text(
+                        category.toUpperCase(),
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: Theme.of(context).colorScheme.secondary,
+                            ),
+                      ),
+                      const SizedBox(height: 5),
+                    ],
+                    Text(
+                      product.name,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    if (product.brand case final brand?) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        brand,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Text(
+                      _price(product.price),
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    if (product.stock == 0) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Agotado',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            product.name,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 3),
-          Text(
-            product.brand ?? 'SIDE B',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _price(product.price),
-            style: Theme.of(context).textTheme.titleSmall
-                ?.copyWith(fontWeight: FontWeight.w700),
-          ),
-        ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _ProductSkeleton extends StatelessWidget {
@@ -171,7 +254,7 @@ class _ProductSkeleton extends StatelessWidget {
   Widget build(BuildContext context) => const Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Expanded(child: SkeletonBlock(radius: 3)),
+      SkeletonBlock(height: 180),
       SizedBox(height: 11),
       SkeletonBlock(width: 90, height: 12),
       SizedBox(height: 4),
@@ -188,4 +271,4 @@ class _ProductSkeleton extends StatelessWidget {
   );
 }
 
-String _price(num value) => '\$${value.toStringAsFixed(0)} MXN';
+String _price(num value) => '\$${value.toStringAsFixed(2)} MXN';

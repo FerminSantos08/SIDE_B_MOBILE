@@ -102,6 +102,18 @@ class _Repository extends CheckoutRepository {
       'https://www.sandbox.paypal.com/checkoutnow?token=example';
 }
 
+class _HistoryRepository extends _Repository {
+  @override
+  Future<List<PurchaseOrder>> orders() async => [
+    for (final id in [81, 84, 82, 86, 83, 85])
+      PurchaseOrder.fromJson({
+        ..._data(),
+        'id': id,
+        'date': '2026-11-${id - 70}T10:00:00',
+      }),
+  ];
+}
+
 Future<void> _render(
   WidgetTester tester,
   _Repository repository, {
@@ -132,6 +144,22 @@ Future<void> _visible(WidgetTester tester, String text) async {
 }
 
 void main() {
+  testWidgets('shows five recent orders before opening the full history', (
+    tester,
+  ) async {
+    await _render(tester, _HistoryRepository(), child: const OrdersScreen());
+    expect(find.text('SB-000086'), findsOneWidget);
+    await _visible(tester, 'Ver todos los pedidos');
+    expect(find.text('SB-000082'), findsOneWidget);
+    expect(find.text('SB-000081'), findsNothing);
+
+    await tester.tap(find.text('Ver todos los pedidos'));
+    await tester.pumpAndSettle();
+    expect(find.text('Historial de pedidos.'), findsOneWidget);
+    await _visible(tester, 'SB-000081');
+    expect(find.text('SB-000081'), findsOneWidget);
+  });
+
   test('repository sends destination, stable id and expected total, never client line prices', () async {
     final api = _Api();
     final repository = CheckoutRepository(api);
@@ -246,6 +274,11 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('ACTUALIZAR ESTADO'));
       await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Tu compra está confirmada.'),
+        -160,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text('Tu compra está confirmada.'), findsOneWidget);
       expect(find.text('PAGAR CON PAYPAL'), findsNothing);
     },

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/layout/side_b_layout.dart';
-import '../../../core/theme/side_b_theme.dart';
 import '../../../core/widgets/async_state.dart';
 import '../../../core/widgets/editorial_components.dart';
 import '../../../core/widgets/olive_shimmer.dart';
@@ -19,78 +18,105 @@ class ArtistCatalogScreen extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final padding = SideBLayout.horizontalPadding(width);
-        final landscape =
-            MediaQuery.orientationOf(context) == Orientation.landscape;
-        final phone = width < SideBLayout.compactBreakpoint;
-        final columns = phone
-            ? 2
-            : (landscape || width >= SideBLayout.expandedBreakpoint ? 3 : 2);
-        final imageAspectRatio = phone ? .75 : (landscape ? 4 / 3 : .8);
-        final gridWidth = width - (padding * 2);
-        final tileWidth = (gridWidth - (16 * (columns - 1))) / columns;
-        final tileHeight = (tileWidth / imageAspectRatio) + 60;
+        final columns = width >= SideBLayout.expandedBreakpoint ? 3 : 2;
         return CustomScrollView(
           slivers: [
             const SliverToBoxAdapter(
               child: EditorialHeader(
-                eyebrow: 'Nuevas coordenadas',
-                title: 'Descubre\nalgo distinto.',
-                description:
-                    'Artistas que están haciendo ruido en los márgenes.',
+                eyebrow: 'Artistas',
+                title: 'Descubre',
+                subtitle: 'algo distinto.',
+                description: 'Explora sus historias, discos y publicaciones.',
               ),
             ),
             artists.when(
               loading: () => SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(padding, 0, padding, 112),
-                  child: OliveShimmer(
-                    child: GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: columns,
-                        mainAxisSpacing: 18,
-                        crossAxisSpacing: 16,
-                        mainAxisExtent: tileHeight,
-                      ),
-                      itemCount: columns * 2,
-                      itemBuilder: (_, __) =>
-                          _ArtistSkeleton(aspectRatio: imageAspectRatio),
-                    ),
-                  ),
+                child: _ArtistCatalogWidth(
+                  width: width,
+                  child: const OliveShimmer(child: _ArtistSkeleton()),
                 ),
               ),
-              error: (_, __) => SliverFillRemaining(
+              error: (_, _) => SliverFillRemaining(
+                hasScrollBody: false,
                 child: AsyncErrorView(
                   message: 'No pudimos cargar los artistas.',
                   onRetry: () => ref.invalidate(artistsProvider),
                 ),
               ),
-              data: (items) => items.isEmpty
-                  ? const SliverFillRemaining(
-                      child: EmptyView(
-                        message: 'Aún no hay artistas disponibles.',
-                      ),
-                    )
-                  : SliverPadding(
-                      padding: EdgeInsets.fromLTRB(padding, 0, padding, 112),
-                      sliver: SliverGrid(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) => _ArtistCard(
-                            artist: items[index],
-                            imageAspectRatio: imageAspectRatio,
-                          ),
-                          childCount: items.length,
-                        ),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: columns,
-                          mainAxisSpacing: 18,
-                          crossAxisSpacing: 16,
-                          mainAxisExtent: tileHeight,
+              data: (items) {
+                if (items.isEmpty) {
+                  return const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: EmptyView(
+                      message: 'Aún no hay artistas disponibles.',
+                    ),
+                  );
+                }
+                final rest = items.length - 1;
+                return SliverMainAxisGroup(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: _ArtistCatalogWidth(
+                        width: width,
+                        child: ArtistCard(
+                          artist: items.first,
+                          imageAspectRatio: 16 / 9,
+                          featured: true,
                         ),
                       ),
                     ),
+                    if (rest > 0) ...[
+                      SliverToBoxAdapter(
+                        child: _ArtistCatalogWidth(
+                          width: width,
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 28, bottom: 14),
+                            child: Text(
+                              'Más artistas',
+                              style: Theme.of(context).textTheme.headlineMedium,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SliverList.builder(
+                        itemCount: (rest / columns).ceil(),
+                        itemBuilder: (context, row) => _ArtistCatalogWidth(
+                          width: width,
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                for (
+                                  var column = 0;
+                                  column < columns;
+                                  column++
+                                ) ...[
+                                  if (column > 0) const SizedBox(width: 12),
+                                  Expanded(
+                                    child:
+                                        1 + row * columns + column <
+                                            items.length
+                                        ? ArtistCard(
+                                            artist:
+                                                items[1 +
+                                                    row * columns +
+                                                    column],
+                                            imageAspectRatio: 1,
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SliverToBoxAdapter(child: SizedBox(height: 52)),
+                  ],
+                );
+              },
             ),
           ],
         );
@@ -99,45 +125,107 @@ class ArtistCatalogScreen extends ConsumerWidget {
   }
 }
 
-class _ArtistCard extends StatelessWidget {
-  const _ArtistCard({required this.artist, required this.imageAspectRatio});
-  final Artist artist;
-  final double imageAspectRatio;
+class _ArtistCatalogWidth extends StatelessWidget {
+  const _ArtistCatalogWidth({required this.width, required this.child});
+
+  final double width;
+  final Widget child;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    label: 'Ver perfil de ${artist.name}',
-    child: InkWell(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => ArtistProfileScreen(artistId: artist.id),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          NetworkCover(url: artist.image, aspectRatio: imageAspectRatio),
-          const SizedBox(height: 10),
-          Text(
-            artist.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          if (artist.genre != null) ...[
-            const SizedBox(height: 3),
-            Text(
-              artist.genre!,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelMedium,
-            ),
-          ],
-        ],
+  Widget build(BuildContext context) => Center(
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: SideBLayout.maxContentWidth),
+      child: Padding(
+        padding: SideBLayout.pageInsets(width, bottom: 0),
+        child: child,
       ),
     ),
   );
+}
+
+class ArtistCard extends StatelessWidget {
+  const ArtistCard({
+    super.key,
+    required this.artist,
+    required this.imageAspectRatio,
+    this.featured = false,
+  });
+  final Artist artist;
+  final double imageAspectRatio;
+  final bool featured;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      button: true,
+      label: 'Ver perfil de ${artist.name}',
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => ArtistProfileScreen(artistId: artist.id),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              NetworkCover(
+                url: artist.image,
+                aspectRatio: imageAspectRatio,
+                height: featured
+                    ? SideBLayout.featuredPostHeight(
+                        MediaQuery.sizeOf(context).width,
+                      )
+                    : null,
+              ),
+              Padding(
+                padding: EdgeInsets.all(featured ? 18 : 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (artist.genre case final genre?) ...[
+                            Text(
+                              genre,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: theme.colorScheme.secondary,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                          ],
+                          Text(
+                            artist.name,
+                            style: featured
+                                ? theme.textTheme.headlineMedium
+                                : theme.textTheme.titleMedium,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (featured) ...[
+                      const SizedBox(width: 12),
+                      Icon(
+                        Icons.arrow_outward,
+                        size: 18,
+                        color: theme.colorScheme.secondary,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class ArtistProfileScreen extends ConsumerWidget {
@@ -148,15 +236,14 @@ class ArtistProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(artistProvider(artistId));
     return Scaffold(
-      body: SafeArea(
-        child: state.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => AsyncErrorView(
-            message: 'No pudimos abrir este artista.',
-            onRetry: () => ref.invalidate(artistProvider(artistId)),
-          ),
-          data: (artist) => _ArtistProfile(artist: artist),
+      appBar: AppBar(title: const Text('Artistas')),
+      body: state.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, _) => AsyncErrorView(
+          message: 'No pudimos abrir este artista.',
+          onRetry: () => ref.invalidate(artistProvider(artistId)),
         ),
+        data: (artist) => _ArtistProfile(artist: artist),
       ),
     );
   }
@@ -164,163 +251,197 @@ class ArtistProfileScreen extends ConsumerWidget {
 
 class _ArtistProfile extends StatelessWidget {
   const _ArtistProfile({required this.artist});
+
   final Artist artist;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final width = constraints.maxWidth;
-      final padding = SideBLayout.horizontalPadding(width);
+      final theme = Theme.of(context);
       final wide = width >= SideBLayout.compactBreakpoint;
-      final hero = NetworkCover(url: artist.image, aspectRatio: 1);
-      final copy = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      final identity = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (artist.genre != null)
+          if (artist.genre case final genre?) ...[
             Text(
-              artist.genre!.toUpperCase(),
-              style: Theme.of(context).textTheme.labelMedium
-                  ?.copyWith(color: SideBColors.accent),
+              genre.toUpperCase(),
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.secondary,
+              ),
             ),
-          const SizedBox(height: 9),
-          Text(artist.name, style: Theme.of(context).textTheme.displaySmall),
-          const SizedBox(height: 14),
-          Text(
-            artist.bio ??
-                'Próximamente encontrarás más información sobre este artista.',
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
+            const SizedBox(height: 8),
+          ],
+          Text(artist.name, style: theme.textTheme.displaySmall),
         ],
       );
-      return CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            backgroundColor: SideBColors.ivory,
-            leading: IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back),
-            ),
-            title: const Text('SIDE B'),
+      final cover = artist.image == null
+          ? null
+          : NetworkCover(url: artist.image, aspectRatio: 4 / 3);
+
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: SideBLayout.maxContentWidth,
           ),
-          SliverToBoxAdapter(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: SideBLayout.maxContentWidth,
-                ),
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(padding, 20, padding, 112),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (wide)
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: copy),
-                            const SizedBox(width: 40),
-                            Expanded(child: hero),
-                          ],
-                        )
-                      else ...[
-                        hero,
-                        const SizedBox(height: 24),
-                        copy,
-                      ],
-                      const SizedBox(height: 48),
-                      Text(
-                        'Historias y lanzamientos',
-                        style: Theme.of(context).textTheme.headlineMedium,
-                      ),
-                      if (artist.posts.isNotEmpty) ...[
-                        const SizedBox(height: 20),
-                        ...artist.posts.map(
-                          (post) => CompactPostCard(
-                            post: post,
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    PostDetailScreen(postId: post.id),
+          child: ListView(
+            padding: SideBLayout.pageInsets(width, top: 24, bottom: 56),
+            children: [
+              if (wide && cover != null)
+                Row(
+                  children: [
+                    Expanded(child: identity),
+                    const SizedBox(width: 28),
+                    Expanded(child: cover),
+                  ],
+                )
+              else ...[
+                identity,
+                if (cover != null) ...[const SizedBox(height: 20), cover],
+              ],
+              if (artist.bio case final bio?) ...[
+                const SizedBox(height: 20),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 720),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(18),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Biografía',
+                                style: theme.textTheme.headlineMedium,
                               ),
-                            ),
+                              const SizedBox(height: 10),
+                              Text(bio, style: theme.textTheme.bodyLarge),
+                            ],
                           ),
                         ),
-                      ],
-                      if (artist.albums.isNotEmpty) ...[
-                        const SizedBox(height: 28),
-                        _AlbumGrid(albums: artist.albums),
-                      ],
-                      if (artist.posts.isEmpty && artist.albums.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 20),
-                          child: Text(
-                            'Aún no hay publicaciones ni álbumes asociados.',
-                          ),
-                        ),
-                    ],
+                      ),
+                    ),
                   ),
+                ),
+              ],
+              if (artist.albums.isNotEmpty) ...[
+                const SizedBox(height: 32),
+                Text('Discografía', style: theme.textTheme.headlineMedium),
+                const SizedBox(height: 14),
+                _AlbumGrid(albums: artist.albums),
+              ],
+              if (artist.posts.isNotEmpty) ...[
+                const SizedBox(height: 32),
+                Text(
+                  'Publicaciones relacionadas',
+                  style: theme.textTheme.headlineMedium,
+                ),
+                for (final post in artist.posts)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 14),
+                    child: FeaturedPostCard(
+                      post: post,
+                      height: 180,
+                      onTap: () => _openPost(context, post),
+                      onComment: () => _openPost(context, post, comments: true),
+                    ),
+                  ),
+              ],
+              if (artist.posts.isEmpty && artist.albums.isEmpty) ...[
+                const SizedBox(height: 24),
+                Text(
+                  'Aún no hay álbumes ni publicaciones de este artista.',
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    },
+  );
+
+  void _openPost(BuildContext context, Post post, {bool comments = false}) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            PostDetailScreen(postId: post.id, scrollToComments: comments),
+      ),
+    );
+  }
+}
+
+class _AlbumGrid extends StatelessWidget {
+  const _AlbumGrid({required this.albums});
+
+  final List<Album> albums;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      const gap = 12.0;
+      final text = Theme.of(context).textTheme;
+      final accent = Theme.of(context).colorScheme.secondary;
+      final width = constraints.maxWidth;
+      final columns = ((width + gap) / 148).floor().clamp(1, 5);
+      final tileWidth = (width - gap * (columns - 1)) / columns;
+      return Wrap(
+        spacing: gap,
+        runSpacing: gap,
+        children: [
+          for (final album in albums)
+            SizedBox(
+              width: tileWidth,
+              child: Card(
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    NetworkCover(url: album.cover, aspectRatio: 1),
+                    Padding(
+                      padding: const EdgeInsets.all(11),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(album.title, style: text.titleMedium),
+                          const SizedBox(height: 5),
+                          Text(
+                            [
+                              album.type?.toUpperCase() ?? 'ÁLBUM',
+                              if (DateTime.tryParse(album.releaseDate ?? '')
+                                  case final date?)
+                                date.year.toString(),
+                            ].join(' · '),
+                            style: text.labelMedium?.copyWith(color: accent),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ),
         ],
       );
     },
   );
 }
 
-class _AlbumGrid extends StatelessWidget {
-  const _AlbumGrid({required this.albums});
-  final List<Album> albums;
-  @override
-  Widget build(BuildContext context) => Wrap(
-    spacing: 16,
-    runSpacing: 20,
-    children: albums
-        .map(
-          (album) => SizedBox(
-            width: 180,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                NetworkCover(url: album.cover, aspectRatio: 1),
-                const SizedBox(height: 8),
-                Text(
-                  album.type?.toUpperCase() ?? 'ÁLBUM',
-                  style: Theme.of(context).textTheme.labelMedium
-                      ?.copyWith(color: SideBColors.accent),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  album.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ],
-            ),
-          ),
-        )
-        .toList(growable: false),
-  );
-}
-
 class _ArtistSkeleton extends StatelessWidget {
-  const _ArtistSkeleton({required this.aspectRatio});
-  final double aspectRatio;
+  const _ArtistSkeleton();
+
   @override
-  Widget build(BuildContext context) => Column(
+  Widget build(BuildContext context) => const Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      AspectRatio(
-        aspectRatio: aspectRatio,
-        child: const SkeletonBlock(radius: 3),
-      ),
-      const SizedBox(height: 10),
-      const SkeletonBlock(height: 18),
-      const SizedBox(height: 6),
-      const SkeletonBlock(width: 100, height: 12),
+      AspectRatio(aspectRatio: 16 / 9, child: SkeletonBlock()),
+      SizedBox(height: 14),
+      SkeletonBlock(width: 110, height: 12),
+      SizedBox(height: 8),
+      SkeletonBlock(width: 180, height: 24),
     ],
   );
 }

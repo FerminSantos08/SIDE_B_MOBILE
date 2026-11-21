@@ -2,6 +2,10 @@
 
 Aplicación Flutter para la plataforma editorial y tienda musical SIDE B.
 
+## Autoría y uso académico
+
+Proyecto de Fermin Santos. Estado declarado por el autor: **registro en trámite**. Consulta el [aviso de derechos](COPYRIGHT) y el [archivo de autoría](AUTHORS).
+
 ## Implementado
 
 - Navegación inferior flotante adaptable a teléfonos y tabletas.
@@ -29,27 +33,35 @@ Aplicación Flutter para la plataforma editorial y tienda musical SIDE B.
 - Migración `wishlist_item` aplicada en MySQL para lista de deseos.
 - `JWT_SECRET` de al menos 32 caracteres configurado en FastAPI.
 
-## Ejecutar
+## Compilación y pruebas
 
-```powershell
+Ejecuta estos comandos desde la raíz del proyecto:
+
+```bash
 flutter pub get
+flutter test
 flutter run
 ```
 
-## Pendiente
+## API y esquema MySQL
 
-- Pruebas unitarias inyectables para autenticación.
-- Firma de distribución y URL pública HTTPS para producción; registrar el webhook PayPal cuando exista esa URL.
+El código de FastAPI está en [api/](api/README.md). Su configuración local
+se guarda en `api/.env` a partir de `api/.env.example`.
 
+Con MySQL local en ejecución y las dependencias de la API instaladas, genera
+`database/schema.sql` desde el directorio `api/`:
 
-## Verificación del acabado
+```bash
+uv run --locked python ../database/export_schema.py
+```
 
-`flutter test --no-pub` ejecuta toda la suite, incluyendo navegación, tamaños de
-320 a 900 px, texto ampliado, teclado, estados cortos y los flujos de cuenta,
-portadas, biblioteca, deseos, comentarios, reacciones y checkout.
-`flutter analyze --no-pub --no-fatal-infos` comprueba errores y advertencias;
-el SDK actual informa además deprecaciones y recomendaciones de estilo.
+El archivo contiene la estructura de las tablas, sin registros. Para cargarlo
+en una base MySQL vacía creada previamente:
 
-El splash utiliza el mismo fondo marfil en los recursos Android normales,
-nocturnos y Android 12+. Las fuentes Space Grotesk e Instrument Serif se incluyen
-con sus licencias OFL en `assets/fonts`, sin descarga al abrir la aplicación.
+```bash
+mysql -u USUARIO -p BASE_VACÍA < database/schema.sql
+```
+
+Ejecuta la importación desde la raíz del repositorio. Las migraciones de
+`api/migrations/` sirven para actualizar bases anteriores. El esquema
+exportado ya incluye las migraciones aplicadas en la base de origen.

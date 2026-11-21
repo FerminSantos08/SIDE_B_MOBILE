@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/async_state.dart';
+import '../../../core/theme/side_b_theme.dart';
 import '../../profile/presentation/profile_screen.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/widgets/editorial_components.dart';
@@ -16,7 +17,7 @@ class CartScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cart = ref.watch(cartProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Tu carrito.')),
+      appBar: AppBar(title: const Text('Carrito')),
       body: cart.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => AsyncErrorView(
@@ -37,33 +38,78 @@ class CartScreen extends ConsumerWidget {
         data: (items) => items.isEmpty
             ? const EmptyView(message: 'Tu carrito está vacío.')
             : ListView(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 52),
                 children: [
-                  ...items.map((item) => _CartItemRow(item: item)),
-                  const Divider(height: 36),
                   Text(
-                    'Subtotal',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  Text(
-                    _money(
-                      items.fold<num>(
-                        0,
-                        (sum, item) => sum + item.product.price * item.quantity,
-                      ),
-                    ),
+                    'Tu carrito.',
                     style: Theme.of(context).textTheme.displaySmall,
                   ),
-                  const SizedBox(height: 12),
-                  const Text('El envío se calcula en el siguiente paso.'),
                   const SizedBox(height: 20),
-                  FilledButton(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const CheckoutScreen(),
+                  ...items.map(
+                    (item) => _CartItemRow(
+                      key: ValueKey(item.product.id),
+                      item: item,
+                    ),
+                  ),
+                  Card(
+                    color: SideBColors.graphite,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            'Resumen del pedido',
+                            style: Theme.of(context).textTheme.headlineMedium
+                                ?.copyWith(color: SideBColors.paper),
+                          ),
+                          const SizedBox(height: 16),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 8,
+                            alignment: WrapAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Subtotal',
+                                style: TextStyle(color: SideBColors.ivory),
+                              ),
+                              Text(
+                                _money(
+                                  items.fold<num>(
+                                    0,
+                                    (sum, item) =>
+                                        sum +
+                                        item.product.price * item.quantity,
+                                  ),
+                                ),
+                                style: const TextStyle(
+                                  color: SideBColors.paper,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'El envío se calcula en el siguiente paso.',
+                            style: TextStyle(color: SideBColors.ivory),
+                          ),
+                          const SizedBox(height: 20),
+                          FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: SideBColors.paper,
+                              foregroundColor: SideBColors.graphite,
+                            ),
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const CheckoutScreen(),
+                              ),
+                            ),
+                            child: const Text('CONTINUAR CON LA COMPRA'),
+                          ),
+                        ],
                       ),
                     ),
-                    child: const Text('CONTINUAR CON LA COMPRA'),
                   ),
                 ],
               ),
@@ -82,13 +128,13 @@ class CartButton extends ConsumerWidget {
           Navigator.of(context)
               .push(MaterialPageRoute(builder: (_) => const CartScreen())),
       tooltip: 'Mi carrito',
-      icon: const Icon(Icons.shopping_bag_outlined),
+      icon: const Icon(Icons.shopping_cart_outlined, size: 20),
     );
   }
 }
 
 class _CartItemRow extends ConsumerStatefulWidget {
-  const _CartItemRow({required this.item});
+  const _CartItemRow({super.key, required this.item});
   final CartItem item;
   @override
   ConsumerState<_CartItemRow> createState() => _CartItemRowState();
@@ -123,57 +169,76 @@ class _CartItemRowState extends ConsumerState<_CartItemRow> {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 18),
-    child: Row(
-      children: [
-        SizedBox(
-          width: 78,
-          child: NetworkCover(url: item.product.image, aspectRatio: 1),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                item.product.name,
-                style: Theme.of(context).textTheme.titleLarge,
+    child: Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 78,
+              child: NetworkCover(
+                url: item.product.image,
+                aspectRatio: 1,
+                fit: BoxFit.contain,
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               ),
-              Text(
-                _money(item.product.price),
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              Row(
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    onPressed: !_busy && item.quantity > 1
-                        ? () => _setQuantity(item.quantity - 1)
-                        : null,
-                    icon: const Icon(Icons.remove),
+                  Text(
+                    item.product.name,
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  Text('${item.quantity}'),
-                  IconButton(
-                    onPressed:
-                        _busy || item.quantity >= (item.product.stock ?? 0)
-                        ? null
-                        : () => _setQuantity(item.quantity + 1),
-                    icon: const Icon(Icons.add),
+                  Text(
+                    '${_money(item.product.price)} por unidad',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  if (item.quantity > 1)
+                    Text(
+                      'Total: ${_money(item.product.price * item.quantity)}',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      IconButton(
+                        tooltip: 'Reducir cantidad',
+                        onPressed: !_busy && item.quantity > 1
+                            ? () => _setQuantity(item.quantity - 1)
+                            : null,
+                        icon: const Icon(Icons.remove),
+                      ),
+                      Text('${item.quantity}'),
+                      IconButton(
+                        tooltip: 'Aumentar cantidad',
+                        onPressed:
+                            _busy || item.quantity >= (item.product.stock ?? 0)
+                            ? null
+                            : () => _setQuantity(item.quantity + 1),
+                        icon: const Icon(Icons.add),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+            IconButton(
+              tooltip: 'Quitar del carrito',
+              onPressed: _busy
+                  ? null
+                  : () => _run(
+                      () => ref
+                          .read(contentRepositoryProvider)
+                          .removeCartItem(item.product.id),
+                    ),
+              icon: const Icon(Icons.close),
+            ),
+          ],
         ),
-        IconButton(
-          onPressed: _busy
-              ? null
-              : () => _run(
-                  () => ref
-                      .read(contentRepositoryProvider)
-                      .removeCartItem(item.product.id),
-                ),
-          icon: const Icon(Icons.close),
-        ),
-      ],
+      ),
     ),
   );
 

@@ -94,49 +94,65 @@ class _AddressBookScreenState extends ConsumerState<AddressBookScreen> {
                     child: ListView.separated(
                       padding: const EdgeInsets.fromLTRB(24, 20, 24, 110),
                       itemCount: items.length,
-                      separatorBuilder: (_, _) => const Divider(height: 30),
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final item = items[index];
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.isDefault
-                                  ? '${item.label} · Principal'
-                                  : item.label,
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(item.address),
-                            const SizedBox(height: 12),
-                            Wrap(
-                              spacing: 8,
-                              crossAxisAlignment: WrapCrossAlignment.center,
+                        return Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                if (!item.isDefault)
-                                  OutlinedButton(
-                                    onPressed: _busy
-                                        ? null
-                                        : () => _run(
-                                            () => ref
-                                                .read(profileRepositoryProvider)
-                                                .setDefault(item.id),
-                                          ),
-                                    child: const Text('USAR COMO PRINCIPAL'),
-                                  ),
-                                IconButton(
-                                  tooltip: 'Editar ${item.label}',
-                                  onPressed: _busy ? null : () => _edit(item),
-                                  icon: const Icon(Icons.edit_outlined),
+                                Text(
+                                  item.isDefault
+                                      ? '${item.label} · Principal'
+                                      : item.label,
+                                  style: Theme.of(context).textTheme.titleLarge,
                                 ),
-                                IconButton(
-                                  tooltip: 'Eliminar ${item.label}',
-                                  onPressed: _busy ? null : () => _remove(item),
-                                  icon: const Icon(Icons.delete_outline),
+                                const SizedBox(height: 8),
+                                Text(
+                                  item.address,
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                                const SizedBox(height: 12),
+                                Wrap(
+                                  spacing: 8,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    if (!item.isDefault)
+                                      OutlinedButton(
+                                        onPressed: _busy
+                                            ? null
+                                            : () => _run(
+                                                () => ref
+                                                    .read(
+                                                      profileRepositoryProvider,
+                                                    )
+                                                    .setDefault(item.id),
+                                              ),
+                                        child: const Text(
+                                          'USAR COMO PRINCIPAL',
+                                        ),
+                                      ),
+                                    IconButton(
+                                      tooltip: 'Editar ${item.label}',
+                                      onPressed: _busy
+                                          ? null
+                                          : () => _edit(item),
+                                      icon: const Icon(Icons.edit_outlined),
+                                    ),
+                                    IconButton(
+                                      tooltip: 'Eliminar ${item.label}',
+                                      onPressed: _busy
+                                          ? null
+                                          : () => _remove(item),
+                                      icon: const Icon(Icons.delete_outline),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
+                          ),
                         );
                       },
                     ),
@@ -212,55 +228,61 @@ class _AddressEditorScreenState extends ConsumerState<AddressEditorScreen> {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 580),
         child: ListView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 52),
           children: [
-            Form(
-              key: _form,
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: _label,
-                    enabled: !_busy,
-                    maxLength: 60,
-                    decoration: const InputDecoration(
-                      labelText: 'Etiqueta',
-                      hintText: 'Casa, trabajo…',
-                    ),
-                    validator: (value) => (value ?? '').trim().isEmpty
-                        ? 'Escribe una etiqueta.'
-                        : null,
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Form(
+                  key: _form,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextFormField(
+                        controller: _label,
+                        enabled: !_busy,
+                        maxLength: 60,
+                        decoration: const InputDecoration(
+                          labelText: 'Etiqueta',
+                          hintText: 'Casa, trabajo…',
+                        ),
+                        validator: (value) => (value ?? '').trim().isEmpty
+                            ? 'Escribe una etiqueta.'
+                            : null,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _address,
+                        enabled: !_busy,
+                        minLines: 4,
+                        maxLines: 6,
+                        maxLength: 255,
+                        autofillHints: const [AutofillHints.fullStreetAddress],
+                        decoration: const InputDecoration(
+                          labelText: 'Dirección completa',
+                          hintText: 'Calle, número, colonia, municipio, estado y código postal',
+                          alignLabelWithHint: true,
+                        ),
+                        validator: (value) => (value ?? '').trim().isEmpty
+                            ? 'Escribe la dirección.'
+                            : null,
+                      ),
+                      CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        value: _default,
+                        onChanged: _busy
+                            ? null
+                            : (value) => setState(() => _default = value!),
+                        title: const Text('Usar como principal'),
+                      ),
+                      const SizedBox(height: 20),
+                      FilledButton(
+                        onPressed: _busy ? null : _save,
+                        child: Text(_busy ? 'GUARDANDO…' : 'GUARDAR DIRECCIÓN'),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _address,
-                    enabled: !_busy,
-                    minLines: 4,
-                    maxLines: 6,
-                    maxLength: 255,
-                    autofillHints: const [AutofillHints.fullStreetAddress],
-                    decoration: const InputDecoration(
-                      labelText: 'Dirección completa',
-                      hintText: 'Calle, número, colonia, municipio, estado y código postal',
-                      alignLabelWithHint: true,
-                    ),
-                    validator: (value) => (value ?? '').trim().isEmpty
-                        ? 'Escribe la dirección.'
-                        : null,
-                  ),
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    value: _default,
-                    onChanged: _busy
-                        ? null
-                        : (value) => setState(() => _default = value!),
-                    title: const Text('Usar como principal'),
-                  ),
-                  const SizedBox(height: 20),
-                  FilledButton(
-                    onPressed: _busy ? null : _save,
-                    child: Text(_busy ? 'GUARDANDO…' : 'GUARDAR DIRECCIÓN'),
-                  ),
-                ],
+                ),
               ),
             ),
             if (_error != null)

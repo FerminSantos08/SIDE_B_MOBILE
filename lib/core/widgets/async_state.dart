@@ -47,8 +47,8 @@ class _StatePanel extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: const BoxDecoration(
-                color: SideBColors.paper,
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardTheme.color,
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: SideBColors.olive, size: 28),

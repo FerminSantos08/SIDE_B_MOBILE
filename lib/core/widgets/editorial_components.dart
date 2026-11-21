@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../features/content/data/content_models.dart';
 import '../../features/content/presentation/post_actions_bar.dart';
 import '../theme/side_b_theme.dart';
+import '../layout/side_b_layout.dart';
 import 'olive_shimmer.dart';
 import '../utils/text_formatters.dart';
 
@@ -13,33 +14,68 @@ class EditorialHeader extends StatelessWidget {
     required this.eyebrow,
     required this.title,
     this.description,
-    this.alignment = Alignment.center,
+    this.subtitle,
+    this.trailing,
   });
   final String eyebrow;
   final String title;
   final String? description;
-  final AlignmentGeometry alignment;
+  final String? subtitle;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      final horizontal = constraints.maxWidth < 600 ? 20.0 : 32.0;
-      return Align(
-        alignment: alignment,
+      return Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1180),
+          constraints: const BoxConstraints(
+            maxWidth: SideBLayout.maxContentWidth,
+          ),
           child: Padding(
-            padding: EdgeInsets.fromLTRB(horizontal, 24, horizontal, 22),
+            padding: SideBLayout.pageInsets(
+              constraints.maxWidth,
+              top: 24,
+              bottom: 22,
+            ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
                   eyebrow.toUpperCase(),
-                  style: Theme.of(context).textTheme.labelMedium
-                      ?.copyWith(color: SideBColors.accent),
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
                 ),
                 const SizedBox(height: 9),
-                Text(title, style: Theme.of(context).textTheme.displaySmall),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text.rich(
+                        TextSpan(
+                          text: title,
+                          children: [
+                            if (subtitle != null)
+                              TextSpan(
+                                text: '\n$subtitle',
+                                style: TextStyle(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .secondary,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                          ],
+                        ),
+                        style: Theme.of(context).textTheme.displaySmall,
+                      ),
+                    ),
+                    if (trailing case final action?) ...[
+                      const SizedBox(width: 12),
+                      action,
+                    ],
+                  ],
+                ),
                 if (description != null) ...[
                   const SizedBox(height: 12),
                   Text(
@@ -64,8 +100,10 @@ class NetworkCover extends StatelessWidget {
     this.height,
     this.child,
     this.fit = BoxFit.cover,
+    this.backgroundColor,
   });
   final BoxFit fit;
+  final Color? backgroundColor;
   final String? url;
   final double aspectRatio;
   final double? height;
@@ -78,7 +116,11 @@ class NetworkCover extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          const ColoredBox(color: SideBColors.skeleton),
+          ColoredBox(
+            color:
+                backgroundColor ??
+                Theme.of(context).colorScheme.surfaceContainerHigh,
+          ),
           if (url != null)
             Image.network(
               url!,
@@ -117,7 +159,7 @@ class FeaturedPostCard extends StatelessWidget {
     button: true,
     label: post.title,
     child: Material(
-      color: SideBColors.paper,
+      color: Theme.of(context).cardTheme.color,
       borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -137,7 +179,9 @@ class FeaturedPostCard extends StatelessWidget {
                         child: Text(
                           _tag(post).toUpperCase(),
                           style: Theme.of(context).textTheme.labelMedium
-                              ?.copyWith(color: SideBColors.accent),
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.secondary,
+                              ),
                         ),
                       ),
                       const Icon(
@@ -154,6 +198,15 @@ class FeaturedPostCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
+                  if (post.description.trim().isNotEmpty) ...[
+                    const SizedBox(height: 9),
+                    Text(
+                      post.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   Text(
                     _meta(post),
@@ -176,10 +229,14 @@ class FeaturedPostCard extends StatelessWidget {
 class _CoverPlaceholder extends StatelessWidget {
   const _CoverPlaceholder();
   @override
-  Widget build(BuildContext context) => const ColoredBox(
-    color: SideBColors.skeleton,
+  Widget build(BuildContext context) => ColoredBox(
+    color: Theme.of(context).colorScheme.surfaceContainerHigh,
     child: Center(
-      child: Icon(LucideIcons.image, size: 28, color: SideBColors.muted),
+      child: Icon(
+        LucideIcons.image,
+        size: 28,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
     ),
   );
 }
@@ -221,7 +278,9 @@ class CompactPostCard extends StatelessWidget {
                       Text(
                         _tag(post).toUpperCase(),
                         style: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(color: SideBColors.accent),
+                            ?.copyWith(
+                              color: Theme.of(context).colorScheme.secondary,
+                            ),
                       ),
                       const SizedBox(height: 5),
                       Text(
@@ -235,12 +294,12 @@ class CompactPostCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Padding(
-                  padding: EdgeInsets.only(top: 23),
+                Padding(
+                  padding: const EdgeInsets.only(top: 23),
                   child: Icon(
                     LucideIcons.chevronRight,
                     size: 18,
-                    color: SideBColors.graphite,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -281,7 +340,7 @@ class EditorialPostCard extends StatelessWidget {
             Text(
               _tag(post).toUpperCase(),
               style: Theme.of(context).textTheme.labelMedium
-                  ?.copyWith(color: SideBColors.accent),
+                  ?.copyWith(color: Theme.of(context).colorScheme.secondary),
             ),
             const SizedBox(height: 7),
             Text(

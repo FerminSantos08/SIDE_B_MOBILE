@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/widgets/async_state.dart';
+import '../../../core/utils/text_formatters.dart';
 import '../../../core/widgets/editorial_components.dart';
 import '../../auth/auth.dart';
 import '../../content/presentation/post_detail_screen.dart';
@@ -141,37 +142,56 @@ class _SavedPostsScreenState extends ConsumerState<SavedPostsScreen> {
                             await ref.read(savedPostsProvider.future);
                           },
                           child: ListView.separated(
-                            padding: const EdgeInsets.all(20),
+                            padding: const EdgeInsets.fromLTRB(20, 20, 20, 52),
                             itemCount: library.posts.length,
                             separatorBuilder: (_, _) =>
-                                const Divider(height: 24),
+                                const SizedBox(height: 12),
                             itemBuilder: (context, index) {
                               final post = library.posts[index];
-                              return ListTile(
-                                contentPadding: EdgeInsets.zero,
-                                leading: SizedBox(
-                                  width: 64,
-                                  height: 64,
-                                  child: NetworkCover(
-                                    url: post.image,
-                                    aspectRatio: 1,
+                              return Card(
+                                clipBehavior: Clip.antiAlias,
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 10,
                                   ),
-                                ),
-                                title: Text(post.title),
-                                subtitle: Text(post.author ?? 'Editorial'),
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) =>
-                                        PostDetailScreen(postId: post.id),
+                                  leading: SizedBox(
+                                    width: 64,
+                                    height: 64,
+                                    child: NetworkCover(
+                                      url: post.image,
+                                      aspectRatio: 1,
+                                    ),
                                   ),
-                                ),
-                                trailing: IconButton(
-                                  tooltip: 'Quitar de guardados',
-                                  onPressed: _removing.contains(post.id)
-                                      ? null
-                                      : () => _remove(post.id),
-                                  icon: const Icon(
-                                    Icons.bookmark_remove_outlined,
+                                  title: Text(
+                                    post.title,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineMedium
+                                        ?.copyWith(fontSize: 24),
+                                  ),
+                                  subtitle: Text(
+                                    [
+                                          post.author ?? 'Editorial',
+                                          formatSpanishDate(post.date),
+                                        ]
+                                        .where((text) => text.isNotEmpty)
+                                        .join(' · '),
+                                  ),
+                                  onTap: () => Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) =>
+                                          PostDetailScreen(postId: post.id),
+                                    ),
+                                  ),
+                                  trailing: IconButton(
+                                    tooltip: 'Quitar de guardados',
+                                    onPressed: _removing.contains(post.id)
+                                        ? null
+                                        : () => _remove(post.id),
+                                    icon: const Icon(
+                                      Icons.bookmark_remove_outlined,
+                                    ),
                                   ),
                                 ),
                               );

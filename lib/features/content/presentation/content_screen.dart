@@ -1,10 +1,7 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/layout/side_b_layout.dart';
-import '../../../core/network/api_exception.dart';
 import '../../../core/theme/side_b_theme.dart';
 import '../../../core/widgets/async_state.dart';
 import '../../../core/widgets/editorial_components.dart';
@@ -23,31 +20,35 @@ class ContentScreen extends ConsumerWidget {
   final ContentMode mode;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (mode == ContentMode.home)
-      return _HomeScreen(posts: ref.watch(postsProvider));
-    if (mode == ContentMode.editorial)
-      return _EditorialScreen(posts: ref.watch(postsProvider));
-    if (mode == ContentMode.artists) return const ArtistCatalogScreen();
-    if (mode == ContentMode.catalog) return const ShopScreen();
-    return _OtherContentScreen(mode: mode);
-  }
+  Widget build(BuildContext context, WidgetRef ref) => switch (mode) {
+    ContentMode.home => const _HomeScreen(),
+    ContentMode.editorial => _EditorialScreen(posts: ref.watch(postsProvider)),
+    ContentMode.artists => const ArtistCatalogScreen(),
+    ContentMode.catalog => const ShopScreen(),
+  };
 }
 
 class _HomeScreen extends ConsumerWidget {
-  const _HomeScreen({required this.posts});
-  final AsyncValue<List<Post>> posts;
+  const _HomeScreen();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => LayoutBuilder(
     builder: (context, constraints) {
       final width = constraints.maxWidth;
+      final posts = ref.watch(postsProvider);
       return RefreshIndicator(
         color: SideBColors.olive,
         onRefresh: () async {
           ref.invalidate(reactionUpdatesProvider);
-          ref.invalidate(postsProvider);
-          await ref.read(postsProvider.future);
+          try {
+            await Future.wait([
+              ref.refresh(postsProvider.future),
+              ref.refresh(artistsProvider.future),
+              ref.refresh(productsProvider.future),
+            ]);
+          } on Exception {
+            // Each section renders its own provider error and retry action.
+          }
         },
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -55,33 +56,49 @@ class _HomeScreen extends ConsumerWidget {
             const SliverToBoxAdapter(
               child: EditorialHeader(
                 eyebrow: 'SIDE B / Música y cultura',
-                title: 'Historias para\nescuchar distinto.',
-                alignment: Alignment.centerLeft,
+                title: 'Historias para',
+                subtitle: 'escuchar distinto.',
               ),
             ),
-            posts.when(
-              loading: () =>
-                  SliverToBoxAdapter(child: _HomeSkeleton(width: width)),
-              error: (error, _) => SliverFillRemaining(
-                child: AsyncErrorView(
-                  message: error is ApiException
-                      ? 'No pudimos cargar la portada de SIDE B.\n${error.message}'
-                      : 'No pudimos procesar las publicaciones de SIDE B.',
-                  onRetry: () => ref.invalidate(postsProvider),
+            SliverToBoxAdapter(
+              child: _ContentWidth(
+                width: width,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    posts.when(
+                      loading: () => OliveShimmer(
+                        child: _FeaturedSkeleton(
+                          height: SideBLayout.featuredPostHeight(width),
+                        ),
+                      ),
+                      error: (_, _) => AsyncErrorView(
+                        message: 'No pudimos cargar las publicaciones.',
+                        onRetry: () => ref.invalidate(postsProvider),
+                      ),
+                      data: (items) => items.isEmpty
+                          ? const EmptyView(
+                              message: 'Aún no hay publicaciones disponibles.',
+                            )
+                          : _HomePosts(posts: items, width: width),
+                    ),
+                    _HomeSelection<Artist>(
+                      title: 'Artistas',
+                      selection: ref.watch(artistsProvider),
+                      onRetry: () => ref.invalidate(artistsProvider),
+                      itemBuilder: (artist) =>
+                          ArtistCard(artist: artist, imageAspectRatio: 1),
+                    ),
+                    _HomeSelection<Product>(
+                      title: 'De la tienda',
+                      selection: ref.watch(productsProvider),
+                      onRetry: () => ref.invalidate(productsProvider),
+                      itemBuilder: (product) => ProductCard(product: product),
+                    ),
+                    const SizedBox(height: 52),
+                  ],
                 ),
               ),
-              data: (items) {
-                if (items.isEmpty) {
-                  return const SliverFillRemaining(
-                    child: EmptyView(
-                      message: 'Aún no hay publicaciones disponibles.',
-                    ),
-                  );
-                }
-                return SliverToBoxAdapter(
-                  child: _HomeBody(width: width, posts: items),
-                );
-              },
             ),
           ],
         ),
@@ -90,68 +107,125 @@ class _HomeScreen extends ConsumerWidget {
   );
 }
 
-class _HomeBody extends StatelessWidget {
-  const _HomeBody({required this.width, required this.posts});
-  final double width;
+class _HomePosts extends StatelessWidget {
+  const _HomePosts({required this.posts, required this.width});
   final List<Post> posts;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
-    final size = SideBLayout.sizeFor(width);
-    final padding = SideBLayout.horizontalPadding(width);
-    final latest = posts.skip(1).take(4).toList();
-    final featured = FeaturedPostCard(
-      post: posts.first,
-      height: SideBLayout.featuredPostHeight(width),
-      onTap: () => _open(context, posts.first),
-      onComment: () => _open(context, posts.first, comments: true),
+    final latest = posts.skip(1).take(2).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _publicationCard(
+          context,
+          posts.first,
+          height: SideBLayout.featuredPostHeight(width),
+        ),
+        if (latest.isNotEmpty) ...[
+          const SizedBox(height: 28),
+          const _SectionTitle(title: 'Últimas publicaciones'),
+          const SizedBox(height: 14),
+          if (width >= SideBLayout.compactBreakpoint && latest.length == 2)
+            _PreviewRow(
+              children: [
+                for (final post in latest) _publicationCard(context, post),
+              ],
+            )
+          else
+            for (final post in latest)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: _publicationCard(context, post),
+              ),
+        ],
+      ],
     );
-    final recent = _RecentPosts(posts: latest);
+  }
+}
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: SideBLayout.maxContentWidth,
+class _HomeSelection<T> extends StatelessWidget {
+  const _HomeSelection({
+    required this.title,
+    required this.selection,
+    required this.onRetry,
+    required this.itemBuilder,
+  });
+
+  final String title;
+  final AsyncValue<List<T>> selection;
+  final VoidCallback onRetry;
+  final Widget Function(T) itemBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = selection.when<Widget?>(
+      loading: () => const OliveShimmer(
+        child: _PreviewRow(
+          children: [
+            AspectRatio(aspectRatio: 1, child: SkeletonBlock()),
+            AspectRatio(aspectRatio: 1, child: SkeletonBlock()),
+          ],
         ),
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(padding, 0, padding, 24),
-          child: size == SideBScreenSize.expanded
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 6, child: featured),
-                    const SizedBox(width: 32),
-                    Expanded(flex: 4, child: recent),
-                  ],
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [featured, const SizedBox(height: 29), recent],
-                ),
-        ),
+      ),
+      error: (_, _) => AsyncErrorView(
+        message: 'No pudimos cargar esta selección.',
+        onRetry: onRetry,
+      ),
+      data: (items) => items.isEmpty
+          ? null
+          : _PreviewRow(children: items.take(2).map(itemBuilder).toList()),
+    );
+    if (content == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Divider(),
+          const SizedBox(height: 20),
+          _SectionTitle(title: title),
+          const SizedBox(height: 14),
+          content,
+        ],
       ),
     );
   }
 }
 
-class _RecentPosts extends StatelessWidget {
-  const _RecentPosts({required this.posts});
-  final List<Post> posts;
+class _PreviewRow extends StatelessWidget {
+  const _PreviewRow({required this.children});
+  final List<Widget> children;
 
   @override
-  Widget build(BuildContext context) => Column(
+  Widget build(BuildContext context) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const _SectionTitle(title: 'Últimas publicaciones'),
-      const SizedBox(height: 5),
-      ...posts.map(
-        (post) => CompactPostCard(
-          post: post,
-          onTap: () => _open(context, post),
-          onComment: () => _open(context, post, comments: true),
-        ),
+      Expanded(child: children.first),
+      const SizedBox(width: 14),
+      Expanded(
+        child: children.length == 2 ? children.last : const SizedBox.shrink(),
       ),
     ],
+  );
+}
+
+class _ContentWidth extends StatelessWidget {
+  const _ContentWidth({required this.width, required this.child});
+
+  final double width;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: SideBLayout.maxContentWidth),
+      child: Padding(
+        padding: SideBLayout.pageInsets(width, bottom: 0),
+        child: child,
+      ),
+    ),
   );
 }
 
@@ -163,14 +237,7 @@ class _EditorialScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) => LayoutBuilder(
     builder: (context, constraints) {
       final width = constraints.maxWidth;
-      final padding = SideBLayout.horizontalPadding(width);
-      final expanded = SideBLayout.sizeFor(width) == SideBScreenSize.expanded;
-      final contentWidth = math
-          .min(width - (padding * 2), SideBLayout.maxContentWidth)
-          .toDouble();
-      // A two-column tile must include its responsive 1.35 image plus all
-      // editorial text below it. A fixed 455px tile overflows on tablets.
-      final editorialTileHeight = ((contentWidth - 24) / 2) / 1.35 + 270;
+      final columns = width >= SideBLayout.compactBreakpoint ? 2 : 1;
       return RefreshIndicator(
         color: SideBColors.olive,
         onRefresh: () async {
@@ -184,15 +251,25 @@ class _EditorialScreen extends ConsumerWidget {
             const SliverToBoxAdapter(
               child: EditorialHeader(
                 eyebrow: 'Lecturas SIDE B',
-                title: 'Editorial.',
+                title: 'Publicaciones',
+                subtitle: 'y hallazgos.',
                 description:
                     'Historias, hallazgos y sonidos para ir un poco más allá.',
               ),
             ),
             posts.when(
-              loading: () =>
-                  SliverToBoxAdapter(child: _EditorialSkeleton(width: width)),
-              error: (_, __) => SliverFillRemaining(
+              loading: () => SliverToBoxAdapter(
+                child: _ContentWidth(
+                  width: width,
+                  child: OliveShimmer(
+                    child: _FeaturedSkeleton(
+                      height: SideBLayout.featuredPostHeight(width),
+                    ),
+                  ),
+                ),
+              ),
+              error: (_, _) => SliverFillRemaining(
+                hasScrollBody: false,
                 child: AsyncErrorView(
                   message: 'No pudimos cargar las publicaciones.',
                   onRetry: () => ref.invalidate(postsProvider),
@@ -201,59 +278,38 @@ class _EditorialScreen extends ConsumerWidget {
               data: (items) {
                 if (items.isEmpty) {
                   return const SliverFillRemaining(
+                    hasScrollBody: false,
                     child: EmptyView(
                       message: 'No hay publicaciones disponibles por ahora.',
                     ),
                   );
                 }
                 return SliverPadding(
-                  padding: EdgeInsets.fromLTRB(padding, 0, padding, 24),
-                  sliver: SliverToBoxAdapter(
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(
-                          maxWidth: SideBLayout.maxContentWidth,
-                        ),
-                        child: expanded
-                            ? GridView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
-                                      mainAxisSpacing: 20,
-                                      crossAxisSpacing: 24,
-                                      mainAxisExtent: editorialTileHeight,
-                                    ),
-                                itemCount: items.length,
-                                itemBuilder: (context, index) =>
-                                    EditorialPostCard(
-                                      post: items[index],
-                                      onTap: () => _open(context, items[index]),
-                                      onComment: () => _open(
+                  padding: const EdgeInsets.only(bottom: 52),
+                  sliver: SliverList.builder(
+                    itemCount: (items.length / columns).ceil(),
+                    itemBuilder: (context, index) {
+                      final start = index * columns;
+                      final first = _publicationCard(context, items[start]);
+                      return _ContentWidth(
+                        width: width,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: columns == 1
+                              ? first
+                              : _PreviewRow(
+                                  children: [
+                                    first,
+                                    if (start + 1 < items.length)
+                                      _publicationCard(
                                         context,
-                                        items[index],
-                                        comments: true,
+                                        items[start + 1],
                                       ),
-                                    ),
-                              )
-                            : Column(
-                                children: items
-                                    .map(
-                                      (post) => EditorialPostCard(
-                                        post: post,
-                                        onTap: () => _open(context, post),
-                                        onComment: () => _open(
-                                          context,
-                                          post,
-                                          comments: true,
-                                        ),
-                                      ),
-                                    )
-                                    .toList(),
-                              ),
-                      ),
-                    ),
+                                  ],
+                                ),
+                        ),
+                      );
+                    },
                   ),
                 );
               },
@@ -265,56 +321,24 @@ class _EditorialScreen extends ConsumerWidget {
   );
 }
 
-class _OtherContentScreen extends StatelessWidget {
-  const _OtherContentScreen({required this.mode});
-  final ContentMode mode;
-
-  @override
-  Widget build(BuildContext context) {
-    final title = mode == ContentMode.artists
-        ? 'Artistas.'
-        : 'La tienda\ndel otro lado.';
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: EditorialHeader(eyebrow: mode.name, title: title),
-        ),
-        SliverFillRemaining(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  'Esta sección conserva su diseño base mientras se completa la siguiente fase.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
+FeaturedPostCard _publicationCard(
+  BuildContext context,
+  Post post, {
+  double? height,
+}) => FeaturedPostCard(
+  post: post,
+  height: height,
+  onTap: () => _open(context, post),
+  onComment: () => _open(context, post, comments: true),
+);
 
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle({required this.title});
   final String title;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Text(title, style: Theme.of(context).textTheme.titleLarge),
-      const Spacer(),
-      Text(
-        'VER TODAS',
-        style: Theme.of(context).textTheme.labelMedium
-            ?.copyWith(color: SideBColors.accent),
-      ),
-    ],
-  );
+  Widget build(BuildContext context) =>
+      Text(title, style: Theme.of(context).textTheme.headlineMedium);
 }
 
 void _open(BuildContext context, Post post, {bool comments = false}) =>
@@ -324,48 +348,6 @@ void _open(BuildContext context, Post post, {bool comments = false}) =>
             PostDetailScreen(postId: post.id, scrollToComments: comments),
       ),
     );
-
-class _HomeSkeleton extends StatelessWidget {
-  const _HomeSkeleton({required this.width});
-  final double width;
-
-  @override
-  Widget build(BuildContext context) {
-    final expanded = SideBLayout.sizeFor(width) == SideBScreenSize.expanded;
-    final hero = _FeaturedSkeleton(
-      height: SideBLayout.featuredPostHeight(width),
-    );
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: SideBLayout.maxContentWidth,
-        ),
-        child: Padding(
-          padding: SideBLayout.pageInsets(width),
-          child: OliveShimmer(
-            child: expanded
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 6, child: hero),
-                      const SizedBox(width: 32),
-                      const Expanded(flex: 4, child: _RecentSkeleton()),
-                    ],
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      hero,
-                      const SizedBox(height: 30),
-                      const _RecentSkeleton(),
-                    ],
-                  ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _FeaturedSkeleton extends StatelessWidget {
   const _FeaturedSkeleton({required this.height});
@@ -393,118 +375,6 @@ class _FeaturedSkeleton extends StatelessWidget {
               SkeletonBlock(width: 190, height: 27),
               SizedBox(height: 12),
               SkeletonBlock(width: 145, height: 10),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-class _RecentSkeleton extends StatelessWidget {
-  const _RecentSkeleton();
-
-  @override
-  Widget build(BuildContext context) => const Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      _SectionTitle(title: 'Ultimas publicaciones'),
-      SizedBox(height: 5),
-      _CompactSkeleton(),
-      _CompactSkeleton(),
-      _CompactSkeleton(),
-    ],
-  );
-}
-
-class _EditorialSkeleton extends StatelessWidget {
-  const _EditorialSkeleton({required this.width});
-  final double width;
-
-  @override
-  Widget build(BuildContext context) {
-    final padding = SideBLayout.horizontalPadding(width);
-    final expanded = SideBLayout.sizeFor(width) == SideBScreenSize.expanded;
-    final contentWidth = math
-        .min(width - (padding * 2), SideBLayout.maxContentWidth)
-        .toDouble();
-    final tileHeight = ((contentWidth - 24) / 2) / 1.35 + 210;
-    final cards = expanded
-        ? GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 20,
-              crossAxisSpacing: 24,
-              mainAxisExtent: tileHeight,
-            ),
-            itemCount: 4,
-            itemBuilder: (_, __) => const _EditorialCardSkeleton(),
-          )
-        : const Column(
-            children: [_EditorialCardSkeleton(), _EditorialCardSkeleton()],
-          );
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: SideBLayout.maxContentWidth,
-        ),
-        child: Padding(
-          padding: SideBLayout.pageInsets(width),
-          child: OliveShimmer(child: cards),
-        ),
-      ),
-    );
-  }
-}
-
-class _EditorialCardSkeleton extends StatelessWidget {
-  const _EditorialCardSkeleton();
-
-  @override
-  Widget build(BuildContext context) => const Padding(
-    padding: EdgeInsets.only(bottom: 26),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AspectRatio(aspectRatio: 1.35, child: SkeletonBlock(radius: 3)),
-        SizedBox(height: 13),
-        SkeletonBlock(width: 78, height: 10),
-        SizedBox(height: 7),
-        SkeletonBlock(height: 28),
-        SizedBox(height: 6),
-        SkeletonBlock(width: 190, height: 28),
-        SizedBox(height: 10),
-        SkeletonBlock(height: 14),
-        SizedBox(height: 6),
-        SkeletonBlock(width: 210, height: 14),
-        SizedBox(height: 10),
-        SkeletonBlock(width: 130, height: 10),
-      ],
-    ),
-  );
-}
-
-class _CompactSkeleton extends StatelessWidget {
-  const _CompactSkeleton();
-
-  @override
-  Widget build(BuildContext context) => const Padding(
-    padding: EdgeInsets.symmetric(vertical: 13),
-    child: Row(
-      children: [
-        SkeletonBlock(height: 84, width: 84, radius: 3),
-        SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SkeletonBlock(height: 10, width: 65),
-              SizedBox(height: 9),
-              SkeletonBlock(height: 20),
-              SizedBox(height: 7),
-              SkeletonBlock(height: 12, width: 110),
             ],
           ),
         ),

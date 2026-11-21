@@ -205,9 +205,11 @@ class _ReactionGesturePickerState extends State<ReactionGesturePicker>
                 child: DecoratedBox(
                   key: const ValueKey('reaction-capsule'),
                   decoration: BoxDecoration(
-                    color: SideBColors.ivory,
+                    color: Theme.of(context).colorScheme.surfaceContainerLow,
                     borderRadius: BorderRadius.circular(36),
-                    border: Border.all(color: SideBColors.border),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                    ),
                     boxShadow: const [
                       BoxShadow(
                         color: Color(0x33292A27),
@@ -300,9 +302,11 @@ class _ReactionGesturePickerState extends State<ReactionGesturePicker>
                                         const SizedBox(height: 1),
                                         Text(
                                           '${widget.counts?[type.id] ?? '–'}',
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 10,
-                                            color: SideBColors.graphite,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface,
                                           ),
                                         ),
                                       ],
