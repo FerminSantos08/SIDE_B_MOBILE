@@ -5,7 +5,7 @@ class ApiConfig {
   static const List<String> baseUrls = [
     String.fromEnvironment(
       'API_BASE_URL',
-      defaultValue: 'http://192.168.3.22:8000',
+      defaultValue: 'http://servidor:8000',
     ),
   ];
 
